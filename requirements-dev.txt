@@ -4,3 +4,4 @@ setuptools
 pytest
 pytest-clarity
 twine
+hatchling
