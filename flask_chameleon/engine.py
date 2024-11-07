@@ -83,7 +83,7 @@ def template(template_file: Optional[Union[Callable, str]] = None, mimetype: str
                 template_file = f'{module}/{view}.pt'
 
         @wraps(f)
-        def sync_view_method(*args, **kwargs):
+        def sync_view_method(*args, **kwargs) -> flask.Response:
             try:
                 response_val = f(*args, **kwargs)
                 return __render_response(template_file, response_val, mimetype)
@@ -91,7 +91,7 @@ def template(template_file: Optional[Union[Callable, str]] = None, mimetype: str
                 return __render_response(nfe.template_file, {}, 'text/html', 404)
 
         @wraps(f)
-        async def async_view_method(*args, **kwargs):
+        async def async_view_method(*args, **kwargs) -> flask.Response:
             try:
                 response_val = await f(*args, **kwargs)
                 return __render_response(template_file, response_val, mimetype)

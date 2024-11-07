@@ -40,7 +40,7 @@ def test_friendly_404_custom_template_sync_method(setup_global_template):
 # noinspection PyUnusedLocal
 def test_friendly_404_async_method(setup_global_template):
     @fc.template('home/index.pt')
-    async def view_method(a, b, c):
+    async def view_method(a, b, c) -> flask.Response:
         flask_chameleon.not_found()
         return {'a': a, 'b': b, 'c': c}
 
