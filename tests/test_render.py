@@ -4,7 +4,7 @@ import flask
 # noinspection PyPackageRequirements
 import pytest
 
-import flask_chameleon as fc
+import chameleon_flask as fc
 
 
 # setup_global_template - needed as pytest mix-in.

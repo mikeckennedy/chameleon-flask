@@ -1,7 +1,7 @@
 import pytest
 
-import flask_chameleon as fc
-from flask_chameleon.exceptions import FlaskChameleonException
+import chameleon_flask as fc
+from chameleon_flask.exceptions import FlaskChameleonException
 
 
 def test_cannot_decorate_with_missing_init():

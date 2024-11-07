@@ -2,8 +2,8 @@ import asyncio
 
 import flask
 
-import flask_chameleon
-import flask_chameleon as fc
+import chameleon_flask
+import chameleon_flask as fc
 
 
 # setup_global_template - needed as pytest mix-in.
@@ -11,7 +11,7 @@ import flask_chameleon as fc
 def test_friendly_404_sync_method(setup_global_template):
     @fc.template('home/index.pt')
     def view_method(a, b, c):
-        flask_chameleon.not_found()
+        chameleon_flask.not_found()
         return {'a': a, 'b': b, 'c': c}
 
     resp = view_method(1, 2, 3)
@@ -26,7 +26,7 @@ def test_friendly_404_sync_method(setup_global_template):
 def test_friendly_404_custom_template_sync_method(setup_global_template):
     @fc.template('home/index.pt')
     def view_method(a, b, c):
-        flask_chameleon.not_found(four04template_file='errors/other_error_page.pt')
+        chameleon_flask.not_found(four04template_file='errors/other_error_page.pt')
         return {'a': a, 'b': b, 'c': c}
 
     resp = view_method(1, 2, 3)
@@ -41,7 +41,7 @@ def test_friendly_404_custom_template_sync_method(setup_global_template):
 def test_friendly_404_async_method(setup_global_template):
     @fc.template('home/index.pt')
     async def view_method(a, b, c) -> flask.Response:
-        flask_chameleon.not_found()
+        chameleon_flask.not_found()
         return {'a': a, 'b': b, 'c': c}
 
     resp = asyncio.run(view_method(1, 2, 3))

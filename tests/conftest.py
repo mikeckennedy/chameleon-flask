@@ -1,6 +1,6 @@
 from pathlib import Path
 
-import flask_chameleon as fc
+import chameleon_flask as fc
 import pytest
 
 

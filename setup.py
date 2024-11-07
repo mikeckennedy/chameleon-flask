@@ -14,7 +14,7 @@ def read(filename):
 
 
 def read_version():
-    filename = os.path.join(os.path.dirname(__file__), 'flask_chameleon', '__init__.py')
+    filename = os.path.join(os.path.dirname(__file__), 'chameleon_flask', '__init__.py')
     with open(filename, mode='r', encoding='utf-8') as fin:
         for line in fin:
             if line and line.strip() and line.startswith('__version__'):
@@ -29,9 +29,9 @@ with open(requirements_txt, 'r', encoding='utf-8') as fin:
     requires = [line.strip() for line in fin if line and line.strip() and not line.strip().startswith('#')]
 
 setup(
-    name='flask_chameleon',
+    name='chameleon_flask',
     version=read_version(),
-    url='https://github.com/mikeckennedy/flask-chameleon',
+    url='https://github.com/mikeckennedy/chameleon-flask',
     license='MIT',
     author='Michael Kennedy',
     author_email='michael@talkpython.fm',

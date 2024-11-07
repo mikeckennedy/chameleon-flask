@@ -6,7 +6,7 @@ from typing import Optional, Union, Callable
 import flask
 from chameleon import PageTemplateLoader, PageTemplate
 
-from flask_chameleon.exceptions import FlaskChameleonException, FlaskChameleonNotFoundException
+from chameleon_flask.exceptions import FlaskChameleonException, FlaskChameleonNotFoundException
 
 __templates: Optional[PageTemplateLoader] = None
 template_path: Optional[str] = None
