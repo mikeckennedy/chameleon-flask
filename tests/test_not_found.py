@@ -1,6 +1,7 @@
 import asyncio
 
 import flask
+
 import flask_chameleon
 import flask_chameleon as fc
 
@@ -14,9 +15,10 @@ def test_friendly_404_sync_method(setup_global_template):
         return {'a': a, 'b': b, 'c': c}
 
     resp = view_method(1, 2, 3)
+    html = response_to_html(resp)
     assert isinstance(resp, flask.Response)
     assert resp.status_code == 404
-    assert b'<h1>This is a pretty 404 page.</h1>' in resp.body
+    assert '<h1>This is a pretty 404 page.</h1>' in html
 
 
 # setup_global_template - needed as pytest mix-in.
@@ -28,9 +30,10 @@ def test_friendly_404_custom_template_sync_method(setup_global_template):
         return {'a': a, 'b': b, 'c': c}
 
     resp = view_method(1, 2, 3)
+    html = response_to_html(resp)
     assert isinstance(resp, flask.Response)
     assert resp.status_code == 404
-    assert b'<h1>Another pretty 404 page.</h1>' in resp.body
+    assert '<h1>Another pretty 404 page.</h1>' in html
 
 
 # setup_global_template - needed as pytest mix-in.
@@ -42,6 +45,12 @@ def test_friendly_404_async_method(setup_global_template):
         return {'a': a, 'b': b, 'c': c}
 
     resp = asyncio.run(view_method(1, 2, 3))
+    html = response_to_html(resp)
     assert isinstance(resp, flask.Response)
     assert resp.status_code == 404
-    assert b'<h1>This is a pretty 404 page.</h1>' in resp.body
+    assert '<h1>This is a pretty 404 page.</h1>' in html
+
+
+def response_to_html(response: flask.Response) -> str:
+    # noinspection PyUnresolvedReferences
+    return response.response[0].decode('utf-8')
