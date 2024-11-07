@@ -5,7 +5,8 @@ from typing import Optional, Union, Callable
 
 import flask
 from chameleon import PageTemplateLoader, PageTemplate
-from flask_chameleon.exceptions import  FlaskChameleonException, FlaskChameleonNotFoundException
+
+from flask_chameleon.exceptions import FlaskChameleonException, FlaskChameleonNotFoundException
 
 __templates: Optional[PageTemplateLoader] = None
 template_path: Optional[str] = None
@@ -43,9 +44,9 @@ def render(template_file: str, **template_data: dict) -> str:
     return page.render(encoding='utf-8', **template_data)
 
 
-def response(template_file: str, mimetype='text/html', status_code=200, **template_data) -> flask.Response:
+def response(template_file: str, content_type='text/html', status_code=200, **template_data) -> flask.Response:
     html = render(template_file, **template_data)
-    return flask.Response(content=html, media_type=mimetype, status_code=status_code)
+    return flask.Response(response=html, content_type=content_type, status=status_code)
 
 
 def template(template_file: Optional[Union[Callable, str]] = None, mimetype: str = 'text/html'):
@@ -105,7 +106,7 @@ def template(template_file: Optional[Union[Callable, str]] = None, mimetype: str
     return response_inner(wrapped_function) if wrapped_function else response_inner
 
 
-def __render_response(template_file, response_val, mimetype, status_code: int = 200) -> flask.Response:
+def __render_response(template_file, response_val, content_type, status_code: int = 200) -> flask.Response:
     # source skip: assign-if-exp
     if isinstance(response_val, flask.Response):
         return response_val
@@ -117,7 +118,7 @@ def __render_response(template_file, response_val, mimetype, status_code: int = 
     model = response_val
 
     html = render(template_file, **model)
-    return flask.Response(content=html, media_type=mimetype, status_code=status_code)
+    return flask.Response(response=html, content_type=content_type, status=status_code)
 
 
 def not_found(four04template_file: str = 'errors/404.pt'):
