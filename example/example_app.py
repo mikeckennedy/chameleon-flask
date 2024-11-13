@@ -24,6 +24,7 @@ async def async_world():
 def add_chameleon():
     dev_mode = True
 
+    # noinspection PyPep8Naming
     BASE_DIR = Path(__file__).resolve().parent
     template_folder = (BASE_DIR / 'templates').as_posix()
     chameleon_flask.global_init(template_folder, auto_reload=dev_mode)

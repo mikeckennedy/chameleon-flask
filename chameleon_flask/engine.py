@@ -12,11 +12,11 @@ __templates: Optional[PageTemplateLoader] = None
 template_path: Optional[str] = None
 
 response_classes = {
-'flask.wrappers.Response',
-'quart.wrappers.response.Response',
-'flask.Response',
-'quart.response.Response',
-'quart.Response',
+"<class 'flask.wrappers.Response'>",
+"<class 'quart.wrappers.response.Response'>",
+"<class 'flask.Response'>",
+"<class 'quart.response.Response'>",
+"<class 'quart.Response'>",
 }
 
 def global_init(template_folder: str, auto_reload=False, cache_init=True):
