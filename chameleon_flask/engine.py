@@ -11,6 +11,13 @@ from chameleon_flask.exceptions import FlaskChameleonException, FlaskChameleonNo
 __templates: Optional[PageTemplateLoader] = None
 template_path: Optional[str] = None
 
+response_classes = {
+'flask.wrappers.Response',
+'quart.wrappers.response.Response',
+'flask.Response',
+'quart.response.Response',
+'quart.Response',
+}
 
 def global_init(template_folder: str, auto_reload=False, cache_init=True):
     global __templates, template_path
@@ -107,8 +114,9 @@ def template(template_file: Optional[Union[Callable, str]] = None, mimetype: str
 
 
 def __render_response(template_file, response_val, content_type, status_code: int = 200) -> flask.Response:
-    # source skip: assign-if-exp
-    if isinstance(response_val, flask.Response):
+
+    val_type = str(type(response_val))
+    if val_type in response_classes:
         return response_val
 
     if template_file and not isinstance(response_val, dict):
