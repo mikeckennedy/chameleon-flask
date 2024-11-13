@@ -17,8 +17,20 @@ def hello_world():
 @app.get('/async')
 @chameleon_flask.template('async.pt')
 async def async_world():
-    await asyncio.sleep(.01)
+    await asyncio.sleep(.01)  # Just a little asyncio to prove it works.
     return {'message': "Let's go async Chameleon!"}
+
+
+@app.get('/xml')
+@chameleon_flask.template('sample.xml', content_type='application/xml')
+def xml_response():
+    return {
+        'items': [
+            'pyramid',
+            'flask',
+            'fastapi',
+        ],
+    }
 
 
 def add_chameleon():
@@ -32,7 +44,7 @@ def add_chameleon():
 
 def main():
     add_chameleon()
-    app.run(debug=True)
+    app.run(debug=True, host='127.0.0.1', port=5555)
 
 
 if __name__ == '__main__':
