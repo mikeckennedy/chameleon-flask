@@ -1,7 +1,7 @@
 import inspect
 import os
 from functools import wraps
-from typing import Optional, Union, Callable
+from typing import Optional, Union, Callable, Any
 
 import flask
 from chameleon import PageTemplateLoader, PageTemplate
@@ -12,12 +12,13 @@ __templates: Optional[PageTemplateLoader] = None
 template_path: Optional[str] = None
 
 response_classes = {
-"<class 'flask.wrappers.Response'>",
-"<class 'quart.wrappers.response.Response'>",
-"<class 'flask.Response'>",
-"<class 'quart.response.Response'>",
-"<class 'quart.Response'>",
+    "<class 'flask.wrappers.Response'>",
+    "<class 'quart.wrappers.response.Response'>",
+    "<class 'flask.Response'>",
+    "<class 'quart.response.Response'>",
+    "<class 'quart.Response'>",
 }
+
 
 def global_init(template_folder: str, auto_reload=False, cache_init=True):
     global __templates, template_path
@@ -56,12 +57,12 @@ def response(template_file: str, content_type='text/html', status_code=200, **te
     return flask.Response(response=html, content_type=content_type, status=status_code)
 
 
-def template(template_file: Optional[Union[Callable, str]] = None, mimetype: str = 'text/html'):
+def template(template_file: Optional[Union[Callable, str]] = None, content_type: str = 'text/html'):
     """
     Decorate a FastAPI view method to render an HTML response.
 
     :param str template_file: Optional, the Chameleon template file (path relative to template folder, *.pt).
-    :param str mimetype: The mimetype response (defaults to text/html).
+    :param str content_type: The mimetype response (defaults to text/html).
     :return: Decorator to be consumed by FastAPI
     """
 
@@ -93,7 +94,7 @@ def template(template_file: Optional[Union[Callable, str]] = None, mimetype: str
         def sync_view_method(*args, **kwargs) -> flask.Response:
             try:
                 response_val = f(*args, **kwargs)
-                return __render_response(template_file, response_val, mimetype)
+                return __render_response(template_file, response_val, content_type)
             except FlaskChameleonNotFoundException as nfe:
                 return __render_response(nfe.template_file, {}, 'text/html', 404)
 
@@ -101,7 +102,7 @@ def template(template_file: Optional[Union[Callable, str]] = None, mimetype: str
         async def async_view_method(*args, **kwargs) -> flask.Response:
             try:
                 response_val = await f(*args, **kwargs)
-                return __render_response(template_file, response_val, mimetype)
+                return __render_response(template_file, response_val, content_type)
             except FlaskChameleonNotFoundException as nfe:
                 return __render_response(nfe.template_file, {}, 'text/html', 404)
 
@@ -113,8 +114,8 @@ def template(template_file: Optional[Union[Callable, str]] = None, mimetype: str
     return response_inner(wrapped_function) if wrapped_function else response_inner
 
 
-def __render_response(template_file, response_val, content_type, status_code: int = 200) -> flask.Response:
-
+def __render_response(template_file: str, response_val: Any, content_type: str,
+                      status_code: int = 200) -> flask.Response:
     val_type = str(type(response_val))
     if val_type in response_classes:
         return response_val
