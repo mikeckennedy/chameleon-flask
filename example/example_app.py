@@ -22,7 +22,7 @@ async def async_world():
 
 
 @app.get('/xml')
-@chameleon_flask.template('sample.xml', content_type='application/xml')
+@chameleon_flask.template('sample.xml', content_type='application/xml', status_code=201)
 def xml_response():
     return {
         'items': [

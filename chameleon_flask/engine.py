@@ -57,10 +57,12 @@ def response(template_file: str, content_type='text/html', status_code=200, **te
     return flask.Response(response=html, content_type=content_type, status=status_code)
 
 
-def template(template_file: Optional[Union[Callable, str]] = None, content_type: str = 'text/html'):
+def template(template_file: Optional[Union[Callable, str]] = None, content_type: str = 'text/html',
+             status_code: int = 200):
     """
     Decorate a FastAPI view method to render an HTML response.
 
+    :param status_code: Default status code for responses. For example 201 on a POST/create action.
     :param str template_file: Optional, the Chameleon template file (path relative to template folder, *.pt).
     :param str content_type: The mimetype response (defaults to text/html).
     :return: Decorator to be consumed by FastAPI
@@ -77,7 +79,6 @@ def template(template_file: Optional[Union[Callable, str]] = None, content_type:
 
         if not template_path:
             template_path = 'templates'
-            # raise FlaskChameleonException("Cannot continue: fastapi_chameleon.global_init() has not been called.")
 
         if not template_file:
             # Use the default naming scheme: template_folder/module_name/function_name.pt
@@ -94,7 +95,7 @@ def template(template_file: Optional[Union[Callable, str]] = None, content_type:
         def sync_view_method(*args, **kwargs) -> flask.Response:
             try:
                 response_val = f(*args, **kwargs)
-                return __render_response(template_file, response_val, content_type)
+                return __render_response(template_file, response_val, content_type, status_code)
             except FlaskChameleonNotFoundException as nfe:
                 return __render_response(nfe.template_file, {}, 'text/html', 404)
 
@@ -114,14 +115,17 @@ def template(template_file: Optional[Union[Callable, str]] = None, content_type:
     return response_inner(wrapped_function) if wrapped_function else response_inner
 
 
-def __render_response(template_file: str, response_val: Any, content_type: str,
+def __render_response(template_file: str,
+                      response_val: Any,
+                      content_type: str,
                       status_code: int = 200) -> flask.Response:
+
     val_type = str(type(response_val))
     if val_type in response_classes:
         return response_val
 
     if template_file and not isinstance(response_val, dict):
-        msg = f'Invalid return type {type(response_val)}, we expected a dict or fastapi.Response as the return value.'
+        msg = f'Invalid return type {type(response_val)}, we expected a dict or flask.Response as the return value.'
         raise FlaskChameleonException(msg)
 
     model = response_val
