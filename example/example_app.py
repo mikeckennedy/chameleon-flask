@@ -17,7 +17,7 @@ def hello_world():
 @app.get('/async')
 @chameleon_flask.template('async.pt')
 async def async_world():
-    await asyncio.sleep(.01)  # Just a little asyncio to prove it works.
+    await asyncio.sleep(0.01)  # Just a little asyncio to prove it works.
     return {'message': "Let's go async Chameleon!"}
 
 

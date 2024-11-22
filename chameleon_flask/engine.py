@@ -57,8 +57,9 @@ def response(template_file: str, content_type='text/html', status_code=200, **te
     return flask.Response(response=html, content_type=content_type, status=status_code)
 
 
-def template(template_file: Optional[Union[Callable, str]] = None, content_type: str = 'text/html',
-             status_code: int = 200):
+def template(
+    template_file: Optional[Union[Callable, str]] = None, content_type: str = 'text/html', status_code: int = 200
+):
     """
     Decorate a FastAPI view method to render an HTML response.
 
@@ -115,11 +116,9 @@ def template(template_file: Optional[Union[Callable, str]] = None, content_type:
     return response_inner(wrapped_function) if wrapped_function else response_inner
 
 
-def __render_response(template_file: str,
-                      response_val: Any,
-                      content_type: str,
-                      status_code: int = 200) -> flask.Response:
-
+def __render_response(
+    template_file: str, response_val: Any, content_type: str, status_code: int = 200
+) -> flask.Response:
     val_type = str(type(response_val))
     if val_type in response_classes:
         return response_val

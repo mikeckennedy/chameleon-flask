@@ -1,6 +1,7 @@
 import asyncio
 
 import flask
+
 # noinspection PyPackageRequirements
 import pytest
 
