@@ -1,6 +1,6 @@
 """chameleon-flask - Adds integration of the Chameleon template language to Flask and Quart."""
 
-__version__ = '0.5.0'
+__version__ = '0.5.1'
 __author__ = 'Michael Kennedy <michael@talkpython.fm>'
 __all__ = [
     'template',

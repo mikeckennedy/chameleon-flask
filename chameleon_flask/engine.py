@@ -104,7 +104,7 @@ def template(
         async def async_view_method(*args, **kwargs) -> flask.Response:
             try:
                 response_val = await f(*args, **kwargs)
-                return __render_response(template_file, response_val, content_type)
+                return __render_response(template_file, response_val, content_type, status_code)
             except FlaskChameleonNotFoundException as nfe:
                 return __render_response(nfe.template_file, {}, 'text/html', 404)
 
