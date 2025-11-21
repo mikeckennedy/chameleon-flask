@@ -20,7 +20,18 @@ response_classes = {
 }
 
 
-def global_init(template_folder: str, auto_reload=False, cache_init=True):
+def global_init(template_folder: str, auto_reload=False, cache_init=True, restricted_namespace=True):
+    """
+    Initialize the Chameleon template engine.
+
+    Args:
+        template_folder: Path to the template directory
+        auto_reload: Whether to auto-reload templates on change
+        cache_init: Whether to initialize the cache
+        restricted_namespace: If True, only TAL/METAL/i18n namespaces are allowed.
+                            If False, allows attribute-based JS frameworks like Alpine.js
+                            to use shorthand syntax (@click, :class, etc.)
+    """
     global __templates, template_path
 
     if __templates and cache_init:
@@ -35,7 +46,11 @@ def global_init(template_folder: str, auto_reload=False, cache_init=True):
         raise FlaskChameleonException(msg)
 
     template_path = template_folder
-    __templates = PageTemplateLoader(template_folder, auto_reload=auto_reload)
+    __templates = PageTemplateLoader(
+        template_folder,
+        auto_reload=auto_reload,
+        restricted_namespace=restricted_namespace, 
+    )
 
 
 def clear():
