@@ -8,7 +8,21 @@ license = { text = "MIT" }
 authors = [
     { name = "Michael Kennedy", email = "michael@talkpython.fm" }
 ]
-keywords = ["Flask", "Chameleon", "template", "integration"]
+keywords = [
+    "Flask",
+    "Quart",
+    "Chameleon",
+    "template",
+    "templates",
+    "templating",
+    "template-engine",
+    "HTML",
+    "view",
+    "rendering",
+    "async",
+    "web",
+    "integration",
+]
 classifiers = [
     "Development Status :: 5 - Production/Stable",
     "License :: OSI Approved :: MIT License",
