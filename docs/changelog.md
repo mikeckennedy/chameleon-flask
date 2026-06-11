@@ -3,6 +3,21 @@
 This changelog is generated automatically from [GitHub Releases](https://github.com/mikeckennedy/chameleon-flask/releases).
 
 
+# v0.6.1
+
+*2026-06-11* · [GitHub](https://github.com/mikeckennedy/chameleon-flask/releases/tag/v0.6.1)
+
+Tighten types and docs across the public API
+
+- Complete annotations: NoReturn on not_found, fix **template_data: dict -\> Any, modern X \| None unions, full param/return types everywhere**
+- Cast the response passthrough (pyrefly caught the flask.Response mismatch)
+- Pin ty and pyrefly to the venv via pyproject \[tool.\*\] config
+- Examples sections and module docstrings; document decoration-time template resolution
+- Export exceptions at the package root with test coverage
+- README: badges, default naming, Quart note, direct rendering section
+- Example app: not_found demo with catalog and 404 templates
+
+
 # v0.6.0
 
 *2025-11-21* · [GitHub](https://github.com/mikeckennedy/chameleon-flask/releases/tag/v0.6.0)
