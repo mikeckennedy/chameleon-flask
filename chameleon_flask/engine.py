@@ -1,10 +1,10 @@
 import inspect
 import os
 from functools import wraps
-from typing import Optional, Union, Callable, Any
+from typing import Any, Callable, Optional, Union
 
 import flask
-from chameleon import PageTemplateLoader, PageTemplate
+from chameleon import PageTemplate, PageTemplateLoader
 
 from chameleon_flask.exceptions import FlaskChameleonException, FlaskChameleonNotFoundException
 
@@ -49,7 +49,7 @@ def global_init(template_folder: str, auto_reload=False, cache_init=True, restri
     __templates = PageTemplateLoader(
         template_folder,
         auto_reload=auto_reload,
-        restricted_namespace=restricted_namespace, 
+        restricted_namespace=restricted_namespace,
     )
 
 

@@ -10,14 +10,16 @@ authors = [
 ]
 keywords = ["Flask", "Chameleon", "template", "integration"]
 classifiers = [
-    "Development Status :: 4 - Beta",
+    "Development Status :: 5 - Production/Stable",
     "License :: OSI Approved :: MIT License",
     "Programming Language :: Python",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
-    "Programming Language :: Python :: 3.14"
+    "Programming Language :: Python :: 3.14",
+    "Programming Language :: Python :: 3.15",
+    "Typing :: Typed",
 ]
 dependencies = [
     "flask[async]",
@@ -26,6 +28,15 @@ dependencies = [
 
 [project.urls]
 "Homepage" = "https://github.com/mikeckennedy/chameleon-flask"
+
+[project.optional-dependencies]
+dev = [
+    "setuptools",
+    "pytest",
+    "pytest-clarity",
+    "twine",
+    "hatchling",
+]
 
 
 [build-system]

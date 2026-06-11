@@ -1,7 +1,8 @@
 from pathlib import Path
 
-import chameleon_flask as fc
 import pytest
+
+import chameleon_flask as fc
 
 
 @pytest.fixture
