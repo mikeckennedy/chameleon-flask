@@ -4,6 +4,7 @@ from functools import wraps
 from typing import Any, Callable, Optional, Union
 
 import flask
+import werkzeug.sansio.response
 from chameleon import PageTemplate, PageTemplateLoader
 
 from chameleon_flask.exceptions import FlaskChameleonException, FlaskChameleonNotFoundException
@@ -11,6 +12,7 @@ from chameleon_flask.exceptions import FlaskChameleonException, FlaskChameleonNo
 __templates: Optional[PageTemplateLoader] = None
 template_path: Optional[str] = None
 
+# Fallback name matching for Response implementations that predate the shared werkzeug base class.
 response_classes = {
     "<class 'flask.wrappers.Response'>",
     "<class 'quart.wrappers.response.Response'>",
@@ -24,13 +26,21 @@ def global_init(template_folder: str, auto_reload=False, cache_init=True, restri
     """
     Initialize the Chameleon template engine.
 
+    Call this once at app startup, before any decorated view runs. With `cache_init=True`
+    (the default), later calls are silently ignored once the engine is initialized; pass
+    `cache_init=False` (or call `chameleon_flask.engine.clear()`) to re-initialize with
+    different settings.
+
     Args:
-        template_folder: Path to the template directory
-        auto_reload: Whether to auto-reload templates on change
-        cache_init: Whether to initialize the cache
+        template_folder: Path to the template directory.
+        auto_reload: Whether to auto-reload templates on change (handy in dev mode).
+        cache_init: If True, do nothing when the engine is already initialized.
         restricted_namespace: If True, only TAL/METAL/i18n namespaces are allowed.
-                            If False, allows attribute-based JS frameworks like Alpine.js
-                            to use shorthand syntax (@click, :class, etc.)
+            If False, allows attribute-based JS frameworks like Alpine.js
+            to use shorthand syntax (@click, :class, etc.)
+
+    Raises:
+        FlaskChameleonException: If `template_folder` is empty or is not a directory.
     """
     global __templates, template_path
 
@@ -54,12 +64,31 @@ def global_init(template_folder: str, auto_reload=False, cache_init=True, restri
 
 
 def clear():
+    """
+    Reset the template engine to its uninitialized state.
+
+    Forgets the cached template loader and template folder so a later `global_init()`
+    call can re-initialize the engine with different settings. Mostly useful in tests.
+    """
     global __templates, template_path
     __templates = None
     template_path = None
 
 
 def render(template_file: str, **template_data: dict) -> str:
+    """
+    Render a Chameleon template to an HTML string.
+
+    Args:
+        template_file: The Chameleon template file (path relative to the template folder).
+        **template_data: Values passed to the template as the model.
+
+    Returns:
+        The rendered HTML as a string.
+
+    Raises:
+        FlaskChameleonException: If `global_init()` has not been called yet.
+    """
     if not __templates:
         raise FlaskChameleonException('You must call global_init() before rendering templates.')
 
@@ -68,6 +97,24 @@ def render(template_file: str, **template_data: dict) -> str:
 
 
 def response(template_file: str, content_type='text/html', status_code=200, **template_data) -> flask.Response:
+    """
+    Render a Chameleon template directly to a `flask.Response`.
+
+    Useful when you want a rendered response without the `@template` decorator, for
+    example inside error handlers or conditional branches.
+
+    Args:
+        template_file: The Chameleon template file (path relative to the template folder).
+        content_type: The content type of the response (defaults to `text/html`).
+        status_code: The HTTP status code of the response (defaults to 200).
+        **template_data: Values passed to the template as the model.
+
+    Returns:
+        The rendered `flask.Response`.
+
+    Raises:
+        FlaskChameleonException: If `global_init()` has not been called yet.
+    """
     html = render(template_file, **template_data)
     return flask.Response(response=html, content_type=content_type, status=status_code)
 
@@ -76,12 +123,28 @@ def template(
     template_file: Optional[Union[Callable, str]] = None, content_type: str = 'text/html', status_code: int = 200
 ):
     """
-    Decorate a FastAPI view method to render an HTML response.
+    Decorate a Flask or Quart view method to render a Chameleon template.
 
-    :param status_code: Default status code for responses. For example 201 on a POST/create action.
-    :param str template_file: Optional, the Chameleon template file (path relative to template folder, *.pt).
-    :param str content_type: The mimetype response (defaults to text/html).
-    :return: Decorator to be consumed by FastAPI
+    Works on both sync and async views, bare (`@template`) or with arguments
+    (`@template('home/index.pt')`). When used bare, the template file is derived from
+    the view as `{module}/{function_name}.html`, falling back to `.pt` when no `.html`
+    file exists in the template folder.
+
+    The decorated view must return either a `dict` (passed to the template as the
+    model) or a Flask/Quart `Response` (passed through untouched, e.g. for redirects).
+
+    Args:
+        template_file: Optional, the Chameleon template file (path relative to the
+            template folder, e.g. `home/index.pt`). Derived from the view when omitted.
+        content_type: The content type of the response (defaults to `text/html`).
+        status_code: Default status code for responses. For example 201 on a POST/create action.
+
+    Returns:
+        The decorator to be consumed by Flask or Quart.
+
+    Raises:
+        FlaskChameleonException: At request time, if the view returns anything other
+            than a `dict` or a recognized `Response` object.
     """
 
     wrapped_function = None
@@ -90,38 +153,44 @@ def template(
         template_file = None
 
     def response_inner(f):
-        nonlocal template_file
         global template_path
 
         if not template_path:
             template_path = 'templates'
 
-        if not template_file:
+        if isinstance(template_file, str) and template_file:
+            view_template: str = template_file
+        else:
             # Use the default naming scheme: template_folder/module_name/function_name.pt
             module = f.__module__
             if '.' in module:
                 module = module.split('.')[-1]
             view = f.__name__
-            template_file = f'{module}/{view}.html'
+            view_template = f'{module}/{view}.html'
 
-            if not os.path.exists(os.path.join(template_path, template_file)):
-                template_file = f'{module}/{view}.pt'
+            if not os.path.exists(os.path.join(template_path, view_template)):
+                view_template = f'{module}/{view}.pt'
+
+        # Shared by both wrappers so the sync and async paths cannot drift apart.
+        def build_response(response_val: Any) -> flask.Response:
+            return __render_response(view_template, response_val, content_type, status_code)
+
+        def not_found_response(nfe: FlaskChameleonNotFoundException) -> flask.Response:
+            return __render_response(nfe.template_file, {}, 'text/html', 404)
 
         @wraps(f)
         def sync_view_method(*args, **kwargs) -> flask.Response:
             try:
-                response_val = f(*args, **kwargs)
-                return __render_response(template_file, response_val, content_type, status_code)
+                return build_response(f(*args, **kwargs))
             except FlaskChameleonNotFoundException as nfe:
-                return __render_response(nfe.template_file, {}, 'text/html', 404)
+                return not_found_response(nfe)
 
         @wraps(f)
         async def async_view_method(*args, **kwargs) -> flask.Response:
             try:
-                response_val = await f(*args, **kwargs)
-                return __render_response(template_file, response_val, content_type, status_code)
+                return build_response(await f(*args, **kwargs))
             except FlaskChameleonNotFoundException as nfe:
-                return __render_response(nfe.template_file, {}, 'text/html', 404)
+                return not_found_response(nfe)
 
         if inspect.iscoroutinefunction(f):
             return async_view_method
@@ -134,8 +203,7 @@ def template(
 def __render_response(
     template_file: str, response_val: Any, content_type: str, status_code: int = 200
 ) -> flask.Response:
-    val_type = str(type(response_val))
-    if val_type in response_classes:
+    if isinstance(response_val, werkzeug.sansio.response.Response) or str(type(response_val)) in response_classes:
         return response_val
 
     if template_file and not isinstance(response_val, dict):
@@ -149,6 +217,21 @@ def __render_response(
 
 
 def not_found(four04template_file: str = 'errors/404.pt'):
+    """
+    Abort the current view and render a friendly 404 page.
+
+    Call this inside a view decorated with `@template`, e.g. when a database lookup
+    comes up empty. The decorator catches the raised exception and renders the given
+    404 template with an empty model, `text/html` content type, and status code 404.
+
+    Args:
+        four04template_file: The template to render for the 404 response
+            (defaults to `errors/404.pt`).
+
+    Raises:
+        FlaskChameleonNotFoundException: Always; the `@template` decorator turns it
+            into the rendered 404 response.
+    """
     msg = 'The URL resulted in a 404 response.'
 
     if four04template_file and four04template_file.strip():

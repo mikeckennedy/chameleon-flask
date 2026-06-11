@@ -28,6 +28,10 @@ dependencies = [
 
 [project.urls]
 "Homepage" = "https://github.com/mikeckennedy/chameleon-flask"
+"Documentation" = "https://mkennedy.codes/docs/chameleon-flask"
+"Issues" = "https://github.com/mikeckennedy/chameleon-flask/issues"
+"Funding" = "https://github.com/sponsors/mikeckennedy"
+"PyPI" = "https://pypi.org/project/chameleon-flask/"
 
 [project.optional-dependencies]
 dev = [
@@ -36,6 +40,7 @@ dev = [
     "pytest-clarity",
     "twine",
     "hatchling",
+    "great-docs; python_version >= '3.11'",
 ]
 
 

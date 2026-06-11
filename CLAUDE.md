@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-`chameleon_flask` (currently v0.6.0) integrates the Chameleon template language with Flask **and Quart**. It is a small library: three modules in `chameleon_flask/`, a test suite in `tests/`, and a runnable demo in `example/example_app.py`. The project began as a fork of the sibling `fastapi-chameleon` project, which explains the FastAPI references that still linger in `engine.py` docstrings and the FastAPI-style code in the README's `not_found` example — those are stale copy-paste artifacts, not real FastAPI support.
+`chameleon_flask` (currently v0.6.0) integrates the Chameleon template language with Flask **and Quart**. It is a small library: three modules in `chameleon_flask/`, a test suite in `tests/`, and a runnable demo in `example/example_app.py`. The project began as a fork of the sibling `fastapi-chameleon` project, which explains the FastAPI-style code that still lingers in the README's `not_found` example — a stale copy-paste artifact, not real FastAPI support.
 
 - Python >= 3.10; runtime deps are just `flask[async]` and `Chameleon` (unpinned)
 - Build backend: hatchling; version is **hardcoded** in `pyproject.toml` (`[project].version`) — bump it manually (hatch-vcs is listed in build requires but not wired up)
@@ -58,9 +58,9 @@ The engine is process-global, not app-scoped:
 ### The `@template` decorator flow
 
 - Usable bare (`@template`) or with args (`@template('home/index.pt', content_type=..., status_code=...)`). Bare usage derives the template path as `{last segment of module}/{function_name}.html`, falling back to `.pt` if the `.html` file doesn't exist on disk. (This is why templates for `tests/test_render.py` live in `tests/templates/test_render/` — renaming that test file breaks those tests.)
-- Sync vs async is dispatched via `inspect.iscoroutinefunction`, producing two parallel wrapper implementations. **Keep them in parity** — async-only bugs are a recurring theme (e.g. commit 669af91 fixed `status_code` being dropped only on the async path).
+- Sync vs async is dispatched via `inspect.iscoroutinefunction`. Both wrappers delegate to shared `build_response`/`not_found_response` closures so the two paths cannot drift — the only difference between them is the `await`. (Historically parity bugs were a theme: commit 669af91 fixed `status_code` being dropped only on the async path.)
 - A decorated view must return either a `dict` (splatted into the template as the model) or a Flask/Quart `Response` (passed through untouched, e.g. for redirects). Anything else raises `FlaskChameleonException`.
-- Response pass-through detection compares `str(type(x))` against a hardcoded set of class-name strings (`response_classes`) so the library never has to import Quart. Consequence: **subclasses of `flask.Response` (or bare werkzeug responses) are not recognized** and will be rejected as invalid return types.
+- Response pass-through detection is an `isinstance` check against `werkzeug.sansio.response.Response` — the shared base class of `flask.Response`, `quart.Response`, bare werkzeug responses, and any subclasses — so the library never has to import Quart. A legacy `str(type(x))` string-set fallback (`response_classes`) remains for Response implementations that predate the shared werkzeug base.
 - `not_found()` raises `FlaskChameleonNotFoundException`; both wrappers catch it and render the 404 template (`errors/404.pt` by default) with an **empty model**, hardcoded `text/html`, status 404 — the view's own `content_type`/`status_code` are ignored for 404s.
 
 ### Namespace restriction (the v0.6.0 feature)
@@ -74,6 +74,6 @@ The engine is process-global, not app-scoped:
 
 ## Known wrinkles
 
-- The README's `not_found()` example still uses FastAPI route syntax (`'/catalog/item/{item_id}'`, `item.dict()`), and `engine.template()`'s docstring says "FastAPI" — leftovers from the fork. The README also doesn't document `restricted_namespace`, `content_type`/`status_code` on `@template`, or the `response()`/`render()` functions.
+- The README's `not_found()` example still uses FastAPI route syntax (`'/catalog/item/{item_id}'`, `item.dict()`) — a leftover from the fork. The README also doesn't document `restricted_namespace`, `content_type`/`status_code` on `@template`, or the `response()`/`render()` functions.
 - Commit dc0cdf0 renamed the `mimetype` kwarg to `content_type` (breaking change) — use `content_type` in all new code and docs.
 - `render()` and `clear()` are importable from `chameleon_flask.engine` but intentionally absent from the package `__all__`.

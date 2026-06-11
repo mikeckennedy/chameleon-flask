@@ -106,6 +106,21 @@ def test_direct_response_pass_through():
     assert html == 'abc'
 
 
+def test_response_subclass_pass_through():
+    class CustomResponse(flask.Response):
+        pass
+
+    @fc.template('home/index.pt')
+    def view_method(a, b, c):
+        return CustomResponse(response='abc', status=418)
+
+    resp = view_method(1, 2, 3)
+    html = response_to_html(resp)
+    assert isinstance(resp, CustomResponse)
+    assert resp.status_code == 418
+    assert html == 'abc'
+
+
 def response_to_html(response: flask.Response) -> str:
     # noinspection PyUnresolvedReferences
     return response.response[0].decode('utf-8')
