@@ -1,5 +1,9 @@
 # chameleon-flask
 
+[![PyPI version](https://img.shields.io/pypi/v/chameleon-flask.svg)](https://pypi.org/project/chameleon-flask/)
+[![Python versions](https://img.shields.io/pypi/pyversions/chameleon-flask.svg)](https://pypi.org/project/chameleon-flask/)
+[![License](https://img.shields.io/github/license/mikeckennedy/chameleon-flask.svg)](https://github.com/mikeckennedy/chameleon-flask/blob/main/LICENSE)
+
 Adds integration of the Chameleon template language to Flask and Quart.
 
 📖 **Documentation**: [mkennedy.codes/docs/chameleon-flask](https://mkennedy.codes/docs/chameleon-flask/)
@@ -53,6 +57,9 @@ If a `flask.Response` is returned, the template is skipped and the response alon
 other values is directly passed through. This is common for redirects and error responses not meant
 for this page template. Otherwise the dictionary is used to render `async.pt` in this example.
 
+Everything works the same on a Quart app — decorate your async Quart views and return a
+dict or a `quart.Response`.
+
 You can also control the response's content type and default status code right on the decorator:
 
 ```python
@@ -60,6 +67,20 @@ You can also control the response's content type and default status code right o
 @chameleon_flask.template('sample.xml', content_type='application/xml', status_code=201)
 def xml_response():
     return {'items': ['pyramid', 'flask', 'fastapi']}
+```
+
+## Default template names
+
+Use the decorator bare and the template file is derived from the view: a function `index`
+in `views.py` maps to `{template_folder}/views/index.html`, falling back to
+`views/index.pt` if no `.html` file exists. The name is resolved when the view is
+decorated, so call `global_init()` before defining views when you rely on this form.
+
+```python
+@app.get('/')
+@chameleon_flask.template
+def index():
+    return {'message': 'Hello world'}  # renders templates/views/index.pt
 ```
 
 ## Friendly 404s and errors
@@ -96,6 +117,24 @@ chameleon_flask.global_init(
     restricted_namespace=False,  # Enable Alpine.js / Vue-style attributes
 )
 ```
+
+## Rendering without the decorator
+
+For error handlers and other spots where the decorator doesn't fit, render directly:
+
+```python
+import chameleon_flask
+
+@app.errorhandler(500)
+def server_error(e):
+    return chameleon_flask.response('errors/500.pt', status_code=500)
+
+# Or get the raw HTML as a string:
+html = chameleon_flask.engine.render('home/index.pt', message='Hi')
+```
+
+See the full [API reference](https://mkennedy.codes/docs/chameleon-flask/reference/) for
+every function, parameter, and exception.
 
 ## An example
 

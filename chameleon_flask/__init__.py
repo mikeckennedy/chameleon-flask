@@ -9,6 +9,10 @@ from .engine import (
     response,
     template,
 )
+from .exceptions import (
+    FlaskChameleonException,
+    FlaskChameleonNotFoundException,
+)
 
 try:
     __version__ = _get_version('chameleon_flask')
@@ -21,4 +25,6 @@ __all__ = [
     'global_init',
     'not_found',
     'response',
+    'FlaskChameleonException',
+    'FlaskChameleonNotFoundException',
 ]

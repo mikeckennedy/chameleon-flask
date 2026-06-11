@@ -20,7 +20,7 @@ engine.render(
 `template_file: str`  
 The Chameleon template file (path relative to the template folder).
 
-`**template_data: dict`  
+`**template_data: Any`  
 Values passed to the template as the model.
 
 

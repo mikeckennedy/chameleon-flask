@@ -13,6 +13,18 @@
     <priority>0.8</priority>
   </url>
   <url>
+    <loc>https://mkennedy.codes/docs/chameleon-flask/reference/FlaskChameleonException.html</loc>
+    <lastmod>2026-06-10</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://mkennedy.codes/docs/chameleon-flask/reference/FlaskChameleonNotFoundException.html</loc>
+    <lastmod>2026-06-10</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
     <loc>https://mkennedy.codes/docs/chameleon-flask/reference/engine.clear.html</loc>
     <lastmod>2026-06-10</lastmod>
     <changefreq>monthly</changefreq>
@@ -20,18 +32,6 @@
   </url>
   <url>
     <loc>https://mkennedy.codes/docs/chameleon-flask/reference/engine.render.html</loc>
-    <lastmod>2026-06-10</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://mkennedy.codes/docs/chameleon-flask/reference/exceptions.FlaskChameleonException.html</loc>
-    <lastmod>2026-06-10</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://mkennedy.codes/docs/chameleon-flask/reference/exceptions.FlaskChameleonNotFoundException.html</loc>
     <lastmod>2026-06-10</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>

@@ -277,14 +277,14 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
       <ul id="quarto-sidebar-section-4" class="list-unstyled sidebar-section depth1 show">  
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../reference/exceptions.FlaskChameleonException.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="doc-object-name doc-class doc-label doc-label-exception">exceptions.FlaskChameleonException</span></span></a>
+  <a href="../reference/FlaskChameleonException.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="doc-object-name doc-class doc-label doc-label-exception">FlaskChameleonException</span></span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../reference/exceptions.FlaskChameleonNotFoundException.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="doc-object-name doc-class doc-label doc-label-class">exceptions.FlaskChameleonNotFoundException</span></span></a>
+  <a href="../reference/FlaskChameleonNotFoundException.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="doc-object-name doc-class doc-label doc-label-class">FlaskChameleonNotFoundException</span></span></a>
   </div>
 </li>
       </ul>
@@ -302,6 +302,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
   <li><a href="#parameters" id="toc-parameters" class="nav-link active" data-scroll-target="#parameters">Parameters</a></li>
   <li><a href="#returns" id="toc-returns" class="nav-link" data-scroll-target="#returns">Returns</a></li>
   <li><a href="#raises" id="toc-raises" class="nav-link" data-scroll-target="#raises">Raises</a></li>
+  <li><a href="#examples" id="toc-examples" class="nav-link" data-scroll-target="#examples">Examples</a></li>
   </ul>
 </nav>
     </div>
@@ -332,7 +333,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </div>
 <div class="doc-usage-source">
 <p>Usage</p>
-<p><a href="https://github.com/mikeckennedy/chameleon-flask/blob/main/chameleon_flask/engine.py#L99-L119" target="_blank" rel="noopener">Source</a></p>
+<p><a href="https://github.com/mikeckennedy/chameleon-flask/blob/main/chameleon_flask/engine.py#L119-L148" target="_blank" rel="noopener">Source</a></p>
 </div>
 <div class="doc-signature doc-Kind.FUNCTION">
 <div class="sourceCode" id="cb1"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="sig-name">response</span>(</span>
@@ -350,15 +351,15 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <dd>
 <p>The Chameleon template file (path relative to the template folder).</p>
 </dd>
-<dt><code><span class="doc-parameter-name">content_type</span><span class="doc-parameter-default-sep op">=</span><span class="doc-parameter-default"><span class="st">"text/html"</span></span></code></dt>
+<dt><code><span class="doc-parameter-name">content_type</span><span class="doc-parameter-annotation-sep">:</span> <span class="doc-parameter-annotation">str</span> <span class="doc-parameter-default-sep op">=</span> <span class="doc-parameter-default"><span class="st">"text/html"</span></span></code></dt>
 <dd>
 <p>The content type of the response (defaults to <code>text/html</code>).</p>
 </dd>
-<dt><code><span class="doc-parameter-name">status_code</span><span class="doc-parameter-default-sep op">=</span><span class="doc-parameter-default"><span class="dv">200</span></span></code></dt>
+<dt><code><span class="doc-parameter-name">status_code</span><span class="doc-parameter-annotation-sep">:</span> <span class="doc-parameter-annotation">int</span> <span class="doc-parameter-default-sep op">=</span> <span class="doc-parameter-default"><span class="dv">200</span></span></code></dt>
 <dd>
 <p>The HTTP status code of the response (defaults to 200).</p>
 </dd>
-<dt><code><span class="doc-parameter-name">**template_data</span></code></dt>
+<dt><code><span class="doc-parameter-name">**template_data</span><span class="doc-parameter-annotation-sep">:</span> <span class="doc-parameter-annotation">Any</span></code></dt>
 <dd>
 Values passed to the template as the model.
 </dd>
@@ -386,6 +387,12 @@ If <a href="global_init.html#chameleon_flask.global_init" class="gdls-link gdls-
 </dd>
 </dl>
 </div>
+</section>
+<section id="examples" class="level2 doc-examples">
+<h2 class="doc-examples">Examples</h2>
+<div class="sourceCode" id="cb2"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="at">@app.errorhandler</span>(<span class="dv">500</span>)</span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> server_error(e):</span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> chameleon_flask.response(<span class="st">'errors/500.pt'</span>, status_code<span class="op">=</span><span class="dv">500</span>)</span></code></pre></div>
 
 
 </section>

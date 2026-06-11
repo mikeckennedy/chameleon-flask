@@ -10,5 +10,7 @@
 <p>Your message is <strong>${message}</strong>
     <a href="/async">See the async example</a>
     or even <a href="/xml">the xml example</a>!</p>
+<p>There's also a <a href="/catalog/item/2">catalog item</a>,
+    and a <a href="/catalog/item/99">missing one</a> showing the friendly 404 page.</p>
 </body>
 </html>

@@ -33,6 +33,17 @@ def xml_response():
     }
 
 
+@app.get('/catalog/item/<int:item_id>')
+@chameleon_flask.template('catalog/item.pt')
+def item(item_id: int):
+    items = {1: 'Pyramid', 2: 'Flask', 3: 'FastAPI'}
+    name = items.get(item_id)
+    if not name:
+        chameleon_flask.not_found()  # Renders templates/errors/404.pt with status 404.
+
+    return {'item_id': item_id, 'name': name}
+
+
 def add_chameleon():
     dev_mode = True
 

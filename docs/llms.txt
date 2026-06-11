@@ -25,7 +25,7 @@
 - [engine.render](https://mkennedy.codes/docs/chameleon-flask/reference/engine.render.html)
 
 #### Exceptions
-> Errors raised by the engine; import from chameleon_flask.exceptions.
+> Errors raised by the engine. Importable from `chameleon_flask` directly or from `chameleon_flask.exceptions`.
 
-- [exceptions.FlaskChameleonException](https://mkennedy.codes/docs/chameleon-flask/reference/exceptions.FlaskChameleonException.html)
-- [exceptions.FlaskChameleonNotFoundException](https://mkennedy.codes/docs/chameleon-flask/reference/exceptions.FlaskChameleonNotFoundException.html)
+- [FlaskChameleonException](https://mkennedy.codes/docs/chameleon-flask/reference/FlaskChameleonException.html): Base exception for all chameleon-flask errors
+- [FlaskChameleonNotFoundException](https://mkennedy.codes/docs/chameleon-flask/reference/FlaskChameleonNotFoundException.html): Raised by `not_found()` to signal that a view should render a 404 page

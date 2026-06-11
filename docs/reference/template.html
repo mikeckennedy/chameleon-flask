@@ -277,14 +277,14 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
       <ul id="quarto-sidebar-section-4" class="list-unstyled sidebar-section depth1 show">  
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../reference/exceptions.FlaskChameleonException.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="doc-object-name doc-class doc-label doc-label-exception">exceptions.FlaskChameleonException</span></span></a>
+  <a href="../reference/FlaskChameleonException.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="doc-object-name doc-class doc-label doc-label-exception">FlaskChameleonException</span></span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../reference/exceptions.FlaskChameleonNotFoundException.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="doc-object-name doc-class doc-label doc-label-class">exceptions.FlaskChameleonNotFoundException</span></span></a>
+  <a href="../reference/FlaskChameleonNotFoundException.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="doc-object-name doc-class doc-label doc-label-class">FlaskChameleonNotFoundException</span></span></a>
   </div>
 </li>
       </ul>
@@ -302,6 +302,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
   <li><a href="#parameters" id="toc-parameters" class="nav-link active" data-scroll-target="#parameters">Parameters</a></li>
   <li><a href="#returns" id="toc-returns" class="nav-link" data-scroll-target="#returns">Returns</a></li>
   <li><a href="#raises" id="toc-raises" class="nav-link" data-scroll-target="#raises">Raises</a></li>
+  <li><a href="#examples" id="toc-examples" class="nav-link" data-scroll-target="#examples">Examples</a></li>
   </ul>
 </nav>
     </div>
@@ -332,7 +333,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </div>
 <div class="doc-usage-source">
 <p>Usage</p>
-<p><a href="https://github.com/mikeckennedy/chameleon-flask/blob/main/chameleon_flask/engine.py#L122-L200" target="_blank" rel="noopener">Source</a></p>
+<p><a href="https://github.com/mikeckennedy/chameleon-flask/blob/main/chameleon_flask/engine.py#L151-L249" target="_blank" rel="noopener">Source</a></p>
 </div>
 <div class="doc-signature doc-Kind.FUNCTION">
 <div class="sourceCode" id="cb1"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="sig-name">template</span>(
@@ -344,12 +345,13 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <div class="doc-text">
 <p>Works on both sync and async views, bare (<code>@template</code>) or with arguments (<code>@template('home/index.pt')</code>). When used bare, the template file is derived from the view as <code>{module}/{function_name}.html</code>, falling back to <code>.pt</code> when no <code>.html</code> file exists in the template folder.</p>
 <p>The decorated view must return either a <code>dict</code> (passed to the template as the model) or a Flask/Quart <code>Response</code> (passed through untouched, e.g.&nbsp;for redirects).</p>
+<p>Note that the template file name is resolved once, when the view is decorated, not per request. When relying on the bare form, call <a href="global_init.html#chameleon_flask.global_init" class="gdls-link gdls-code">global_init()</a> before defining your views; otherwise the <code>.html</code>-or-<code>.pt</code> check assumes a folder named <code>templates</code> relative to the working directory.</p>
 </div>
 <section id="parameters" class="level2 doc-parameters">
 <h2 class="doc-parameters">Parameters</h2>
 <div class="doc-definition-items">
 <dl>
-<dt><code><span class="doc-parameter-name">template_file</span><span class="doc-parameter-annotation-sep">:</span> <span class="doc-parameter-annotation">Optional[Union[Callable, str]]</span> <span class="doc-parameter-default-sep op">=</span> <span class="doc-parameter-default">None</span></code></dt>
+<dt><code><span class="doc-parameter-name">template_file</span><span class="doc-parameter-annotation-sep">:</span> <span class="doc-parameter-annotation">Callable[…, Any] | str | None</span> <span class="doc-parameter-default-sep op">=</span> <span class="doc-parameter-default">None</span></code></dt>
 <dd>
 <p>Optional, the Chameleon template file (path relative to the template folder, e.g.&nbsp;<code>home/index.pt</code>). Derived from the view when omitted.</p>
 </dd>
@@ -368,7 +370,7 @@ Default status code for responses. For example 201 on a POST/create action.
 <h2 class="doc-returns">Returns</h2>
 <div class="doc-definition-items">
 <dl>
-<dt><code></code></dt>
+<dt><code> <span class="doc-parameter-annotation">Callable[…, Any]</span></code></dt>
 <dd>
 The decorator to be consumed by Flask or Quart.
 </dd>
@@ -381,10 +383,23 @@ The decorator to be consumed by Flask or Quart.
 <dl>
 <dt><code> <span class="doc-parameter-annotation">FlaskChameleonException</span></code></dt>
 <dd>
-At request time, if the view returns anything other than a <code>dict</code> or a recognized <code>Response</code> object.
+At request time, if the view returns anything other than a <code>dict</code> or a recognized <code>Response</code> object, or if <a href="global_init.html#chameleon_flask.global_init" class="gdls-link gdls-code">global_init()</a> was never called.
 </dd>
 </dl>
 </div>
+</section>
+<section id="examples" class="level2 doc-examples">
+<h2 class="doc-examples">Examples</h2>
+<div class="sourceCode" id="cb2"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="at">@app.get</span>(<span class="st">'/'</span>)</span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="at">@chameleon_flask.template</span>(<span class="st">'home/index.pt'</span>)</span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> index():</span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> {<span class="st">'message'</span>: <span class="st">'Hello world'</span>}</span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a><span class="at">@app.get</span>(<span class="st">'/listing'</span>)</span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a><span class="at">@chameleon_flask.template</span>  <span class="co"># Bare: renders {module}/{function_name}.html or .pt</span></span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a><span class="cf">async</span> <span class="kw">def</span> listing():</span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> {<span class="st">'items'</span>: <span class="cf">await</span> db.all_items()}</span></code></pre></div>
 
 
 </section>

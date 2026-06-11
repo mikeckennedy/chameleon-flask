@@ -27,3 +27,9 @@ def test_cannot_call_init_with_bad_path(test_templates_path):
     bad_path = test_templates_path / 'missing'
     with pytest.raises(Exception):
         fc.global_init(str(bad_path), cache_init=False)
+
+
+def test_exceptions_importable_from_package_root():
+    assert fc.FlaskChameleonException is FlaskChameleonException
+    assert issubclass(fc.FlaskChameleonNotFoundException, fc.FlaskChameleonException)
+    assert set(fc.__all__) >= {'FlaskChameleonException', 'FlaskChameleonNotFoundException'}

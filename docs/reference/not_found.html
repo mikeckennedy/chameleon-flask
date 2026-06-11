@@ -277,14 +277,14 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
       <ul id="quarto-sidebar-section-4" class="list-unstyled sidebar-section depth1 show">  
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../reference/exceptions.FlaskChameleonException.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="doc-object-name doc-class doc-label doc-label-exception">exceptions.FlaskChameleonException</span></span></a>
+  <a href="../reference/FlaskChameleonException.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="doc-object-name doc-class doc-label doc-label-exception">FlaskChameleonException</span></span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../reference/exceptions.FlaskChameleonNotFoundException.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="doc-object-name doc-class doc-label doc-label-class">exceptions.FlaskChameleonNotFoundException</span></span></a>
+  <a href="../reference/FlaskChameleonNotFoundException.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="doc-object-name doc-class doc-label doc-label-class">FlaskChameleonNotFoundException</span></span></a>
   </div>
 </li>
       </ul>
@@ -301,6 +301,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
   <ul class="collapse">
   <li><a href="#parameters" id="toc-parameters" class="nav-link active" data-scroll-target="#parameters">Parameters</a></li>
   <li><a href="#raises" id="toc-raises" class="nav-link" data-scroll-target="#raises">Raises</a></li>
+  <li><a href="#examples" id="toc-examples" class="nav-link" data-scroll-target="#examples">Examples</a></li>
   </ul>
 </nav>
     </div>
@@ -331,13 +332,13 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </div>
 <div class="doc-usage-source">
 <p>Usage</p>
-<p><a href="https://github.com/mikeckennedy/chameleon-flask/blob/main/chameleon_flask/engine.py#L219-L240" target="_blank" rel="noopener">Source</a></p>
+<p><a href="https://github.com/mikeckennedy/chameleon-flask/blob/main/chameleon_flask/engine.py#L270-L304" target="_blank" rel="noopener">Source</a></p>
 </div>
 <div class="doc-signature doc-Kind.FUNCTION">
 <div class="sourceCode" id="cb1"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="sig-name">not_found</span>(<span class="va">four04template_file</span><span class="op">=</span><span class="st">&quot;errors/404.pt&quot;</span>)</span></code></pre></div>
 </div>
 <div class="doc-text">
-<p>Call this inside a view decorated with <code>@template</code>, e.g.&nbsp;when a database lookup comes up empty. The decorator catches the raised exception and renders the given 404 template with an empty model, <code>text/html</code> content type, and status code 404.</p>
+<p>Call this inside a view decorated with <code>@template</code>, e.g.&nbsp;when a database lookup comes up empty. The decorator catches the raised exception and renders the given 404 template with an empty model, <code>text/html</code> content type, and status code 404 (the view’s own <code>content_type</code> and <code>status_code</code> do not apply to the 404 path).</p>
 </div>
 <section id="parameters" class="level2 doc-parameters">
 <h2 class="doc-parameters">Parameters</h2>
@@ -345,7 +346,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <dl>
 <dt><code><span class="doc-parameter-name">four04template_file</span><span class="doc-parameter-annotation-sep">:</span> <span class="doc-parameter-annotation">str</span> <span class="doc-parameter-default-sep op">=</span> <span class="doc-parameter-default"><span class="st">"errors/404.pt"</span></span></code></dt>
 <dd>
-The template to render for the 404 response (defaults to <code>errors/404.pt</code>).
+The template to render for the 404 response. Defaults to <code>errors/404.pt</code>; an empty or blank value falls back to that same default.
 </dd>
 </dl>
 </div>
@@ -360,6 +361,17 @@ Always; the <code>@template</code> decorator turns it into the rendered 404 resp
 </dd>
 </dl>
 </div>
+</section>
+<section id="examples" class="level2 doc-examples">
+<h2 class="doc-examples">Examples</h2>
+<div class="sourceCode" id="cb2"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="at">@app.get</span>(<span class="st">'/catalog/item/&lt;int:item_id&gt;'</span>)</span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="at">@chameleon_flask.template</span>(<span class="st">'catalog/item.pt'</span>)</span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> item(item_id: <span class="bu">int</span>):</span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>    item <span class="op">=</span> service.get_item_by_id(item_id)</span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="kw">not</span> item:</span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>        chameleon_flask.not_found()</span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> {<span class="st">'item'</span>: item}</span></code></pre></div>
 
 
 </section>

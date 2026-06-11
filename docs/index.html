@@ -229,6 +229,7 @@ section.level2:first-of-type > h2:first-child,
 </section>
 </div></div><section id="chameleon-flask" class="level1">
 <h1>chameleon-flask</h1>
+<p><a href="https://pypi.org/project/chameleon-flask/"><img src="https://img.shields.io/pypi/v/chameleon-flask.svg" class="img-fluid" alt="PyPI version"></a> <a href="https://pypi.org/project/chameleon-flask/"><img src="https://img.shields.io/pypi/pyversions/chameleon-flask.svg" class="img-fluid" alt="Python versions"></a> <a href="https://github.com/mikeckennedy/chameleon-flask/blob/main/LICENSE"><img src="https://img.shields.io/github/license/mikeckennedy/chameleon-flask.svg" class="img-fluid" alt="License"></a></p>
 <p>Adds integration of the Chameleon template language to Flask and Quart.</p>
 <p>📖 <strong>Documentation</strong>: <a href="https://mkennedy.codes/docs/chameleon-flask/">mkennedy.codes/docs/chameleon-flask</a></p>
 <section id="installation" class="level2">
@@ -264,34 +265,56 @@ section.level2:first-of-type > h2:first-child,
 <span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> {<span class="st">'message'</span>: <span class="st">"Let's go async Chameleon!"</span>}</span></code></pre></div>
 <p>The view method should return a <code>dict</code> to be passed as variables/values to the template.</p>
 <p>If a <code>flask.Response</code> is returned, the template is skipped and the response along with status_code and other values is directly passed through. This is common for redirects and error responses not meant for this page template. Otherwise the dictionary is used to render <code>async.pt</code> in this example.</p>
+<p>Everything works the same on a Quart app — decorate your async Quart views and return a dict or a <code>quart.Response</code>.</p>
 <p>You can also control the response’s content type and default status code right on the decorator:</p>
 <div class="sourceCode" id="cb4"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="at">@app.get</span>(<span class="st">'/xml'</span>)</span>
 <span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a><span class="at">@chameleon_flask.template</span>(<span class="st">'sample.xml'</span>, content_type<span class="op">=</span><span class="st">'application/xml'</span>, status_code<span class="op">=</span><span class="dv">201</span>)</span>
 <span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> xml_response():</span>
 <span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> {<span class="st">'items'</span>: [<span class="st">'pyramid'</span>, <span class="st">'flask'</span>, <span class="st">'fastapi'</span>]}</span></code></pre></div>
 </section>
+<section id="default-template-names" class="level2">
+<h2 class="anchored" data-anchor-id="default-template-names">Default template names</h2>
+<p>Use the decorator bare and the template file is derived from the view: a function <code>index</code> in <code>views.py</code> maps to <code>{template_folder}/views/index.html</code>, falling back to <code>views/index.pt</code> if no <code>.html</code> file exists. The name is resolved when the view is decorated, so call <a href="reference/global_init.html#chameleon_flask.global_init" class="gdls-link gdls-code">global_init()</a> before defining views when you rely on this form.</p>
+<div class="sourceCode" id="cb5"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="at">@app.get</span>(<span class="st">'/'</span>)</span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a><span class="at">@chameleon_flask.template</span></span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> index():</span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> {<span class="st">'message'</span>: <span class="st">'Hello world'</span>}  <span class="co"># renders templates/views/index.pt</span></span></code></pre></div>
+</section>
 <section id="friendly-404s-and-errors" class="level2">
 <h2 class="anchored" data-anchor-id="friendly-404s-and-errors">Friendly 404s and errors</h2>
 <p>A common technique for user-friendly sites is to use a <a href="http://www.instantshift.com/2019/10/16/user-friendly-404-pages/">custom HTML page for 404 responses</a>. This library has support for friendly 404 pages using the <a href="reference/not_found.html#chameleon_flask.not_found" class="gdls-link gdls-code">chameleon_flask.not_found()</a> function.</p>
 <p>Here’s an example:</p>
-<div class="sourceCode" id="cb5"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="at">@app.get</span>(<span class="st">'/catalog/item/&lt;int:item_id&gt;'</span>)</span>
-<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a><span class="at">@chameleon_flask.template</span>(<span class="st">'catalog/item.pt'</span>)</span>
-<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> item(item_id: <span class="bu">int</span>):</span>
-<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>    item <span class="op">=</span> service.get_item_by_id(item_id)</span>
-<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="kw">not</span> item:</span>
-<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a>        chameleon_flask.not_found()</span>
-<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> {<span class="st">'item'</span>: item}</span></code></pre></div>
+<div class="sourceCode" id="cb6"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="at">@app.get</span>(<span class="st">'/catalog/item/&lt;int:item_id&gt;'</span>)</span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a><span class="at">@chameleon_flask.template</span>(<span class="st">'catalog/item.pt'</span>)</span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> item(item_id: <span class="bu">int</span>):</span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a>    item <span class="op">=</span> service.get_item_by_id(item_id)</span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="kw">not</span> item:</span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a>        chameleon_flask.not_found()</span>
+<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> {<span class="st">'item'</span>: item}</span></code></pre></div>
 <p>This will render a 404 response using the template file <code>templates/errors/404.pt</code>. You can specify another template to use for the response, but it’s not required.</p>
 </section>
 <section id="alpine.js-vue-and-friends" class="level2">
 <h2 class="anchored" data-anchor-id="alpine.js-vue-and-friends">Alpine.js, Vue, and friends</h2>
 <p>By default, Chameleon rejects attributes outside its own TAL/METAL/i18n namespaces, which breaks the shorthand syntax used by attribute-based JavaScript frameworks (<code>@click</code>, <code>:class</code>, <code>x-data</code>, and so on). Pass <code>restricted_namespace=False</code> to allow them through unchanged:</p>
-<div class="sourceCode" id="cb6"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>chameleon_flask.global_init(</span>
-<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>    template_folder,</span>
-<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>    auto_reload<span class="op">=</span>dev_mode,</span>
-<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a>    restricted_namespace<span class="op">=</span><span class="va">False</span>,  <span class="co"># Enable Alpine.js / Vue-style attributes</span></span>
-<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div>
+<div class="sourceCode" id="cb7"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>chameleon_flask.global_init(</span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>    template_folder,</span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>    auto_reload<span class="op">=</span>dev_mode,</span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a>    restricted_namespace<span class="op">=</span><span class="va">False</span>,  <span class="co"># Enable Alpine.js / Vue-style attributes</span></span>
+<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div>
+</section>
+<section id="rendering-without-the-decorator" class="level2">
+<h2 class="anchored" data-anchor-id="rendering-without-the-decorator">Rendering without the decorator</h2>
+<p>For error handlers and other spots where the decorator doesn’t fit, render directly:</p>
+<div class="sourceCode" id="cb8"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> chameleon_flask</span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a><span class="at">@app.errorhandler</span>(<span class="dv">500</span>)</span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> server_error(e):</span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> chameleon_flask.response(<span class="st">'errors/500.pt'</span>, status_code<span class="op">=</span><span class="dv">500</span>)</span>
+<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a><span class="co">## Or get the raw HTML as a string:</span></span>
+<span id="cb8-8"><a href="#cb8-8" aria-hidden="true" tabindex="-1"></a>html <span class="op">=</span> chameleon_flask.engine.render(<span class="st">'home/index.pt'</span>, message<span class="op">=</span><span class="st">'Hi'</span>)</span></code></pre></div>
+<p>See the full <a href="https://mkennedy.codes/docs/chameleon-flask/reference/">API reference</a> for every function, parameter, and exception.</p>
 </section>
 <section id="an-example" class="level2">
 <h2 class="anchored" data-anchor-id="an-example">An example</h2>

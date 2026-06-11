@@ -1,4 +1,8 @@
-from typing import Optional
+"""Exceptions raised by chameleon-flask.
+
+Both exceptions are importable from the package root (e.g.
+`chameleon_flask.FlaskChameleonException`) as well as from this module.
+"""
 
 
 class FlaskChameleonException(Exception):
@@ -15,10 +19,14 @@ class FlaskChameleonNotFoundException(FlaskChameleonException):
     Args:
         message: Optional description of the missing resource.
         four04template_file: The template to render for the 404 response.
+
+    Attributes:
+        message: The message passed in, if any.
+        template_file: The template the decorator will render for the 404 response.
     """
 
-    def __init__(self, message: Optional[str] = None, four04template_file: str = 'errors/404.pt'):
+    def __init__(self, message: str | None = None, four04template_file: str = 'errors/404.pt'):
         super().__init__(message)
 
         self.template_file: str = four04template_file
-        self.message: Optional[str] = message
+        self.message: str | None = message

@@ -19,11 +19,13 @@ Works on both sync and async views, bare (`@template`) or with arguments (`@temp
 
 The decorated view must return either a `dict` (passed to the template as the model) or a Flask/Quart `Response` (passed through untouched, e.g. for redirects).
 
+Note that the template file name is resolved once, when the view is decorated, not per request. When relying on the bare form, call [global_init()](global_init.md#chameleon_flask.global_init) before defining your views; otherwise the `.html`-or-`.pt` check assumes a folder named `templates` relative to the working directory.
+
 
 ## Parameters
 
 
-`template_file: Optional[Union[Callable, str]] = None`  
+`template_file: Callable[…, Any] | str | None = None`  
 Optional, the Chameleon template file (path relative to the template folder, e.g. `home/index.pt`). Derived from the view when omitted.
 
 `content_type: str = ``"text/html"`  
@@ -36,6 +38,7 @@ Default status code for responses. For example 201 on a POST/create action.
 ## Returns
 
 
+`Callable[…, Any]`  
 The decorator to be consumed by Flask or Quart.
 
 
@@ -43,4 +46,20 @@ The decorator to be consumed by Flask or Quart.
 
 
 `FlaskChameleonException`  
-At request time, if the view returns anything other than a `dict` or a recognized `Response` object.
+At request time, if the view returns anything other than a `dict` or a recognized `Response` object, or if [global_init()](global_init.md#chameleon_flask.global_init) was never called.
+
+
+## Examples
+
+``` python
+@app.get('/')
+@chameleon_flask.template('home/index.pt')
+def index():
+    return {'message': 'Hello world'}
+
+
+@app.get('/listing')
+@chameleon_flask.template  # Bare: renders {module}/{function_name}.html or .pt
+async def listing():
+    return {'items': await db.all_items()}
+```

@@ -8,14 +8,14 @@ This is the API documentation for the chameleon_flask library.
 Set up the Chameleon template engine once at app startup.
 
 
-global_init(template_folder: str, auto_reload=False, cache_init=True, restricted_namespace=True)
+global_init(template_folder: str, auto_reload: bool = False, cache_init: bool = True, restricted_namespace: bool = True) -> None
 
 Initialize the Chameleon template engine.
 
-Call this once at app startup, before any decorated view runs. With `cache_init=True`
-(the default), later calls are silently ignored once the engine is initialized; pass
-`cache_init=False` (or call `chameleon_flask.engine.clear()`) to re-initialize with
-different settings.
+Call this once at app startup, before any decorated view is defined or runs. With
+`cache_init=True` (the default), later calls are silently ignored once the engine is
+initialized; pass `cache_init=False` (or call `chameleon_flask.engine.clear()`) to
+re-initialize with different settings.
 
 Args:
     template_folder: Path to the template directory.
@@ -28,7 +28,17 @@ Args:
 Raises:
     FlaskChameleonException: If `template_folder` is empty or is not a directory.
 
-clear()
+Examples:
+    ```python
+    from pathlib import Path
+    import chameleon_flask
+
+    dev_mode = True
+    folder = Path(__file__).resolve().parent / 'templates'
+    chameleon_flask.global_init(str(folder), auto_reload=dev_mode)
+    ```
+
+clear() -> None
 
 Reset the template engine to its uninitialized state.
 
@@ -41,7 +51,7 @@ call can re-initialize the engine with different settings. Mostly useful in test
 Render templates from Flask/Quart view functions (sync or async) and return friendly 404s.
 
 
-template(template_file: Callable | str | None = None, content_type: str = 'text/html', status_code: int = 200)
+template(template_file: collections.abc.Callable[..., Any] | str | None = None, content_type: str = 'text/html', status_code: int = 200) -> collections.abc.Callable[..., typing.Any]
 
 Decorate a Flask or Quart view method to render a Chameleon template.
 
@@ -52,6 +62,11 @@ file exists in the template folder.
 
 The decorated view must return either a `dict` (passed to the template as the
 model) or a Flask/Quart `Response` (passed through untouched, e.g. for redirects).
+
+Note that the template file name is resolved once, when the view is decorated, not
+per request. When relying on the bare form, call `global_init()` before defining
+your views; otherwise the `.html`-or-`.pt` check assumes a folder named `templates`
+relative to the working directory.
 
 Args:
     template_file: Optional, the Chameleon template file (path relative to the
@@ -64,23 +79,51 @@ Returns:
 
 Raises:
     FlaskChameleonException: At request time, if the view returns anything other
-        than a `dict` or a recognized `Response` object.
+        than a `dict` or a recognized `Response` object, or if `global_init()`
+        was never called.
 
-not_found(four04template_file: str = 'errors/404.pt')
+Examples:
+    ```python
+    @app.get('/')
+    @chameleon_flask.template('home/index.pt')
+    def index():
+        return {'message': 'Hello world'}
+
+
+    @app.get('/listing')
+    @chameleon_flask.template  # Bare: renders {module}/{function_name}.html or .pt
+    async def listing():
+        return {'items': await db.all_items()}
+    ```
+
+not_found(four04template_file: str = 'errors/404.pt') -> NoReturn
 
 Abort the current view and render a friendly 404 page.
 
 Call this inside a view decorated with `@template`, e.g. when a database lookup
 comes up empty. The decorator catches the raised exception and renders the given
-404 template with an empty model, `text/html` content type, and status code 404.
+404 template with an empty model, `text/html` content type, and status code 404
+(the view's own `content_type` and `status_code` do not apply to the 404 path).
 
 Args:
-    four04template_file: The template to render for the 404 response
-        (defaults to `errors/404.pt`).
+    four04template_file: The template to render for the 404 response. Defaults to
+        `errors/404.pt`; an empty or blank value falls back to that same default.
 
 Raises:
     FlaskChameleonNotFoundException: Always; the `@template` decorator turns it
         into the rendered 404 response.
+
+Examples:
+    ```python
+    @app.get('/catalog/item/<int:item_id>')
+    @chameleon_flask.template('catalog/item.pt')
+    def item(item_id: int):
+        item = service.get_item_by_id(item_id)
+        if not item:
+            chameleon_flask.not_found()
+
+        return {'item': item}
+    ```
 
 
 ## Direct rendering
@@ -88,7 +131,7 @@ Raises:
 Render a template to a Response or raw HTML without the decorator.
 
 
-response(template_file: str, content_type='text/html', status_code=200, **template_data) -> flask.wrappers.Response
+response(template_file: str, content_type: str = 'text/html', status_code: int = 200, **template_data: Any) -> flask.wrappers.Response
 
 Render a Chameleon template directly to a `flask.Response`.
 
@@ -107,7 +150,14 @@ Returns:
 Raises:
     FlaskChameleonException: If `global_init()` has not been called yet.
 
-render(template_file: str, **template_data: dict) -> str
+Examples:
+    ```python
+    @app.errorhandler(500)
+    def server_error(e):
+        return chameleon_flask.response('errors/500.pt', status_code=500)
+    ```
+
+render(template_file: str, **template_data: Any) -> str
 
 Render a Chameleon template to an HTML string.
 
@@ -124,7 +174,7 @@ Raises:
 
 ## Exceptions
 
-Errors raised by the engine; import from chameleon_flask.exceptions.
+Errors raised by the engine. Importable from `chameleon_flask` directly or from `chameleon_flask.exceptions`.
 
 
 FlaskChameleonException
@@ -141,3 +191,7 @@ with an empty model and status code 404.
 Args:
     message: Optional description of the missing resource.
     four04template_file: The template to render for the 404 response.
+
+Attributes:
+    message: The message passed in, if any.
+    template_file: The template the decorator will render for the 404 response.

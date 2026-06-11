@@ -1,4 +1,4 @@
-## exceptions.FlaskChameleonNotFoundException
+## FlaskChameleonNotFoundException
 
 
 Raised by [not_found()](not_found.md#chameleon_flask.not_found) to signal that a view should render a 404 page.
@@ -7,7 +7,7 @@ Raised by [not_found()](not_found.md#chameleon_flask.not_found) to signal that a
 Usage
 
 ``` python
-exceptions.FlaskChameleonNotFoundException()
+FlaskChameleonNotFoundException()
 ```
 
 
@@ -17,8 +17,18 @@ The `@template` decorator catches this exception and renders its `template_file`
 ## Parameters
 
 
-`message: Optional[str] = None`  
+`message: str | None = None`  
 Optional description of the missing resource.
 
 `four04template_file: str = ``"errors/404.pt"`  
 The template to render for the 404 response.
+
+
+## Attributes
+
+
+`message: str | None`  
+The message passed in, if any.
+
+`template_file: str`  
+The template the decorator will render for the 404 response.

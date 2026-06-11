@@ -46,11 +46,11 @@ Render a Chameleon template to an HTML string.
 ## Exceptions
 
 
-Errors raised by the engine; import from chameleon_flask.exceptions.
+Errors raised by the engine. Importable from `chameleon_flask` directly or from `chameleon_flask.exceptions`.
 
 
-[exceptions.FlaskChameleonException](exceptions.FlaskChameleonException.md#chameleon_flask.exceptions.FlaskChameleonException)  
+[FlaskChameleonException](FlaskChameleonException.md#chameleon_flask.FlaskChameleonException)  
 Base exception for all chameleon-flask errors.
 
-[exceptions.FlaskChameleonNotFoundException](exceptions.FlaskChameleonNotFoundException.md#chameleon_flask.exceptions.FlaskChameleonNotFoundException)  
+[FlaskChameleonNotFoundException](FlaskChameleonNotFoundException.md#chameleon_flask.FlaskChameleonNotFoundException)  
 Raised by `not_found()` to signal that a view should render a 404 page.

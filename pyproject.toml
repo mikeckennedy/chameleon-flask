@@ -49,6 +49,13 @@ requires = ["hatchling>=1.21.0", "hatch-vcs>=0.3.0"]
 build-backend = "hatchling.build"
 
 
+[tool.ty.environment]
+python = "./venv"
+
+[tool.pyrefly]
+python-interpreter-path = "venv/bin/python"
+
+
 [tool.hatch.build.targets.sdist]
 packages = ["chameleon_flask"]
 exclude = [

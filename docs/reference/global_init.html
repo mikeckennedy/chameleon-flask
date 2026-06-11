@@ -277,14 +277,14 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
       <ul id="quarto-sidebar-section-4" class="list-unstyled sidebar-section depth1 show">  
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../reference/exceptions.FlaskChameleonException.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="doc-object-name doc-class doc-label doc-label-exception">exceptions.FlaskChameleonException</span></span></a>
+  <a href="../reference/FlaskChameleonException.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="doc-object-name doc-class doc-label doc-label-exception">FlaskChameleonException</span></span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../reference/exceptions.FlaskChameleonNotFoundException.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="doc-object-name doc-class doc-label doc-label-class">exceptions.FlaskChameleonNotFoundException</span></span></a>
+  <a href="../reference/FlaskChameleonNotFoundException.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="doc-object-name doc-class doc-label doc-label-class">FlaskChameleonNotFoundException</span></span></a>
   </div>
 </li>
       </ul>
@@ -301,6 +301,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
   <ul class="collapse">
   <li><a href="#parameters" id="toc-parameters" class="nav-link active" data-scroll-target="#parameters">Parameters</a></li>
   <li><a href="#raises" id="toc-raises" class="nav-link" data-scroll-target="#raises">Raises</a></li>
+  <li><a href="#examples" id="toc-examples" class="nav-link" data-scroll-target="#examples">Examples</a></li>
   </ul>
 </nav>
     </div>
@@ -331,7 +332,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </div>
 <div class="doc-usage-source">
 <p>Usage</p>
-<p><a href="https://github.com/mikeckennedy/chameleon-flask/blob/main/chameleon_flask/engine.py#L25-L63" target="_blank" rel="noopener">Source</a></p>
+<p><a href="https://github.com/mikeckennedy/chameleon-flask/blob/main/chameleon_flask/engine.py#L33-L83" target="_blank" rel="noopener">Source</a></p>
 </div>
 <div class="doc-signature doc-Kind.FUNCTION">
 <div class="sourceCode" id="cb1"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="sig-name">global_init</span>(</span>
@@ -342,7 +343,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div>
 </div>
 <div class="doc-text">
-<p>Call this once at app startup, before any decorated view runs. With <code>cache_init=True</code> (the default), later calls are silently ignored once the engine is initialized; pass <code>cache_init=False</code> (or call <a href="engine.clear.html#chameleon_flask.engine.clear" class="gdls-link gdls-code">chameleon_flask.engine.clear()</a>) to re-initialize with different settings.</p>
+<p>Call this once at app startup, before any decorated view is defined or runs. With <code>cache_init=True</code> (the default), later calls are silently ignored once the engine is initialized; pass <code>cache_init=False</code> (or call <a href="engine.clear.html#chameleon_flask.engine.clear" class="gdls-link gdls-code">chameleon_flask.engine.clear()</a>) to re-initialize with different settings.</p>
 </div>
 <section id="parameters" class="level2 doc-parameters">
 <h2 class="doc-parameters">Parameters</h2>
@@ -352,15 +353,15 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <dd>
 <p>Path to the template directory.</p>
 </dd>
-<dt><code><span class="doc-parameter-name">auto_reload</span><span class="doc-parameter-default-sep op">=</span><span class="doc-parameter-default"><span class="va">False</span></span></code></dt>
+<dt><code><span class="doc-parameter-name">auto_reload</span><span class="doc-parameter-annotation-sep">:</span> <span class="doc-parameter-annotation">bool</span> <span class="doc-parameter-default-sep op">=</span> <span class="doc-parameter-default"><span class="va">False</span></span></code></dt>
 <dd>
 <p>Whether to auto-reload templates on change (handy in dev mode).</p>
 </dd>
-<dt><code><span class="doc-parameter-name">cache_init</span><span class="doc-parameter-default-sep op">=</span><span class="doc-parameter-default"><span class="va">True</span></span></code></dt>
+<dt><code><span class="doc-parameter-name">cache_init</span><span class="doc-parameter-annotation-sep">:</span> <span class="doc-parameter-annotation">bool</span> <span class="doc-parameter-default-sep op">=</span> <span class="doc-parameter-default"><span class="va">True</span></span></code></dt>
 <dd>
 <p>If True, do nothing when the engine is already initialized.</p>
 </dd>
-<dt><code><span class="doc-parameter-name">restricted_namespace</span><span class="doc-parameter-default-sep op">=</span><span class="doc-parameter-default"><span class="va">True</span></span></code></dt>
+<dt><code><span class="doc-parameter-name">restricted_namespace</span><span class="doc-parameter-annotation-sep">:</span> <span class="doc-parameter-annotation">bool</span> <span class="doc-parameter-default-sep op">=</span> <span class="doc-parameter-default"><span class="va">True</span></span></code></dt>
 <dd>
 If True, only TAL/METAL/i18n namespaces are allowed. If False, allows attribute-based JS frameworks like Alpine.js to use shorthand syntax (<span class="citation" data-cites="click">@click</span>, :class, etc.)
 </dd>
@@ -377,6 +378,15 @@ If <code>template_folder</code> is empty or is not a directory.
 </dd>
 </dl>
 </div>
+</section>
+<section id="examples" class="level2 doc-examples">
+<h2 class="doc-examples">Examples</h2>
+<div class="sourceCode" id="cb2"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> pathlib <span class="im">import</span> Path</span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> chameleon_flask</span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>dev_mode <span class="op">=</span> <span class="va">True</span></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>folder <span class="op">=</span> Path(<span class="va">__file__</span>).resolve().parent <span class="op">/</span> <span class="st">'templates'</span></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>chameleon_flask.global_init(<span class="bu">str</span>(folder), auto_reload<span class="op">=</span>dev_mode)</span></code></pre></div>
 
 
 </section>

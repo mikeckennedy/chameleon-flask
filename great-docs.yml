@@ -57,7 +57,7 @@ reference:
         - response
         - engine.render
     - title: Exceptions
-      desc: "Errors raised by the engine; import from chameleon_flask.exceptions."
+      desc: "Errors raised by the engine. Importable from `chameleon_flask` directly or from `chameleon_flask.exceptions`."
       contents:
-        - exceptions.FlaskChameleonException
-        - exceptions.FlaskChameleonNotFoundException
+        - FlaskChameleonException
+        - FlaskChameleonNotFoundException

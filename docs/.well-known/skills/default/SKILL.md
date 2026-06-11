@@ -41,10 +41,10 @@ Render a template to a Response or raw HTML without the decorator.
 
 ### Exceptions
 
-Errors raised by the engine; import from chameleon_flask.exceptions.
+Errors raised by the engine. Importable from `chameleon_flask` directly or from `chameleon_flask.exceptions`.
 
-- `exceptions.FlaskChameleonException`
-- `exceptions.FlaskChameleonNotFoundException`
+- `FlaskChameleonException`: Base exception for all chameleon-flask errors
+- `FlaskChameleonNotFoundException`: Raised by `not_found()` to signal that a view should render a 404 page
 
 ## Resources
 

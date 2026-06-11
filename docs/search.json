@@ -12,15 +12,15 @@
     ]
   },
   {
-    "objectID": "reference/exceptions.FlaskChameleonException.html",
-    "href": "reference/exceptions.FlaskChameleonException.html",
-    "title": "exceptions.FlaskChameleonException",
+    "objectID": "reference/FlaskChameleonException.html",
+    "href": "reference/FlaskChameleonException.html",
+    "title": "FlaskChameleonException",
     "section": "",
-    "text": "Base exception for all chameleon-flask errors.\n\n\nUsage\nSource\n\n\nexceptions.FlaskChameleonException()",
+    "text": "Base exception for all chameleon-flask errors.\n\n\nUsage\nSource\n\n\nFlaskChameleonException()",
     "crumbs": [
       "API Reference",
       "Exceptions",
-      "[exceptions.FlaskChameleonException]{.doc-object-name .doc-class .doc-label .doc-label-exception}"
+      "[FlaskChameleonException]{.doc-object-name .doc-class .doc-label .doc-label-exception}"
     ]
   },
   {
@@ -28,7 +28,7 @@
     "href": "reference/engine.render.html",
     "title": "engine.render()",
     "section": "",
-    "text": "Render a Chameleon template to an HTML string.\n\n\nUsage\nSource\n\n\nengine.render(template_file, **template_data)\n\n\nParameters\n\n\ntemplate_file: str\n\nThe Chameleon template file (path relative to the template folder).\n\n**template_data: dict\n\nValues passed to the template as the model.\n\n\n\n\n\nReturns\n\n\n str\n\nThe rendered HTML as a string.\n\n\n\n\n\nRaises\n\n\n FlaskChameleonException\n\nIf global_init() has not been called yet.",
+    "text": "Render a Chameleon template to an HTML string.\n\n\nUsage\nSource\n\n\nengine.render(template_file, **template_data)\n\n\nParameters\n\n\ntemplate_file: str\n\nThe Chameleon template file (path relative to the template folder).\n\n**template_data: Any\n\nValues passed to the template as the model.\n\n\n\n\n\nReturns\n\n\n str\n\nThe rendered HTML as a string.\n\n\n\n\n\nRaises\n\n\n FlaskChameleonException\n\nIf global_init() has not been called yet.",
     "crumbs": [
       "API Reference",
       "Direct rendering",
@@ -36,15 +36,15 @@
     ]
   },
   {
-    "objectID": "reference/exceptions.FlaskChameleonNotFoundException.html",
-    "href": "reference/exceptions.FlaskChameleonNotFoundException.html",
-    "title": "exceptions.FlaskChameleonNotFoundException",
+    "objectID": "reference/global_init.html",
+    "href": "reference/global_init.html",
+    "title": "global_init()",
     "section": "",
-    "text": "Raised by not_found() to signal that a view should render a 404 page.\n\n\nUsage\nSource\n\n\nexceptions.FlaskChameleonNotFoundException()\n\n\nThe @template decorator catches this exception and renders its template_file with an empty model and status code 404.\n\n\nParameters\n\n\nmessage: Optional[str] = None\n\nOptional description of the missing resource.\n\nfour04template_file: str = \"errors/404.pt\"\n\nThe template to render for the 404 response.",
+    "text": "Initialize the Chameleon template engine.\n\n\nUsage\nSource\n\n\nglobal_init(\n    template_folder,\n    auto_reload=False,\n    cache_init=True,\n    restricted_namespace=True\n)\n\n\nCall this once at app startup, before any decorated view is defined or runs. With cache_init=True (the default), later calls are silently ignored once the engine is initialized; pass cache_init=False (or call chameleon_flask.engine.clear()) to re-initialize with different settings.\n\n\nParameters\n\n\ntemplate_folder: str\n\nPath to the template directory.\n\nauto_reload: bool = False\n\nWhether to auto-reload templates on change (handy in dev mode).\n\ncache_init: bool = True\n\nIf True, do nothing when the engine is already initialized.\n\nrestricted_namespace: bool = True\n\nIf True, only TAL/METAL/i18n namespaces are allowed. If False, allows attribute-based JS frameworks like Alpine.js to use shorthand syntax (@click, :class, etc.)\n\n\n\n\n\nRaises\n\n\n FlaskChameleonException\n\nIf template_folder is empty or is not a directory.\n\n\n\n\n\nExamples\nfrom pathlib import Path\nimport chameleon_flask\n\ndev_mode = True\nfolder = Path(__file__).resolve().parent / 'templates'\nchameleon_flask.global_init(str(folder), auto_reload=dev_mode)",
     "crumbs": [
       "API Reference",
-      "Exceptions",
-      "[exceptions.FlaskChameleonNotFoundException]{.doc-object-name .doc-class .doc-label .doc-label-class}"
+      "Configuration",
+      "[global_init()]{.doc-object-name .doc-function .doc-label .doc-label-function}"
     ]
   },
   {
@@ -52,7 +52,7 @@
     "href": "reference/response.html",
     "title": "response()",
     "section": "",
-    "text": "Render a Chameleon template directly to a flask.Response.\n\n\nUsage\nSource\n\n\nresponse(\n    template_file, content_type=\"text/html\", status_code=200, **template_data\n)\n\n\nUseful when you want a rendered response without the @template decorator, for example inside error handlers or conditional branches.\n\n\nParameters\n\n\ntemplate_file: str\n\nThe Chameleon template file (path relative to the template folder).\n\ncontent_type=\"text/html\"\n\nThe content type of the response (defaults to text/html).\n\nstatus_code=200\n\nThe HTTP status code of the response (defaults to 200).\n\n**template_data\n\nValues passed to the template as the model.\n\n\n\n\n\nReturns\n\n\n flask.Response\n\nThe rendered flask.Response.\n\n\n\n\n\nRaises\n\n\n FlaskChameleonException\n\nIf global_init() has not been called yet.",
+    "text": "Render a Chameleon template directly to a flask.Response.\n\n\nUsage\nSource\n\n\nresponse(\n    template_file, content_type=\"text/html\", status_code=200, **template_data\n)\n\n\nUseful when you want a rendered response without the @template decorator, for example inside error handlers or conditional branches.\n\n\nParameters\n\n\ntemplate_file: str\n\nThe Chameleon template file (path relative to the template folder).\n\ncontent_type: str = \"text/html\"\n\nThe content type of the response (defaults to text/html).\n\nstatus_code: int = 200\n\nThe HTTP status code of the response (defaults to 200).\n\n**template_data: Any\n\nValues passed to the template as the model.\n\n\n\n\n\nReturns\n\n\n flask.Response\n\nThe rendered flask.Response.\n\n\n\n\n\nRaises\n\n\n FlaskChameleonException\n\nIf global_init() has not been called yet.\n\n\n\n\n\nExamples\n@app.errorhandler(500)\ndef server_error(e):\n    return chameleon_flask.response('errors/500.pt', status_code=500)",
     "crumbs": [
       "API Reference",
       "Direct rendering",
@@ -64,7 +64,7 @@
     "href": "skills.html",
     "title": "Skills",
     "section": "",
-    "text": "A skill is a package of structured files that teaches an AI coding agent how to work with a specific tool or framework. The skill below was generated by Great Docs from this project’s documentation. Install it in your agent and it will be able to run commands, edit configuration, write content, and troubleshoot problems without step-by-step guidance from you.\n\n  \n    ▶    Install this skill\n  \n  \n    \n      \nAny agent — install with npx:\nnpx skills add https://mkennedy.codes/docs/chameleon-flask/\nCodex / OpenCode\nTell the agent:Fetch the skill file at https://mkennedy.codes/docs/chameleon-flask/skill.md and follow the instructions.\nManual — download the skill file:\ncurl -O https://mkennedy.codes/docs/chameleon-flask/skill.md\nOr browse the SKILL.md file.\n      \n    \n  \n\n\nSKILL.md\n---\nname: chameleon-flask\ndescription: &gt;\n  Adds integration of the Chameleon template language to Flask and Quart. Use when writing Python code that uses the chameleon_flask package.\nlicense: MIT\ncompatibility: Requires Python &gt;=3.10.\n---\n\n# chameleon-flask\n\nAdds integration of the Chameleon template language to Flask and Quart.\n\n## Installation\n\n```bash\npip install chameleon-flask\n```\n\n## API overview\n\n### Configuration\n\nSet up the Chameleon template engine once at app startup.\n\n- `global_init`: Initialize the Chameleon template engine\n- `engine.clear`\n\n### Decorating views\n\nRender templates from Flask/Quart view functions (sync or async) and return friendly 404s.\n\n- `template`: Decorate a Flask or Quart view method to render a Chameleon template\n- `not_found`: Abort the current view and render a friendly 404 page\n\n### Direct rendering\n\nRender a template to a Response or raw HTML without the decorator.\n\n- `response`: Render a Chameleon template directly to a `flask.Response`\n- `engine.render`\n\n### Exceptions\n\nErrors raised by the engine; import from chameleon_flask.exceptions.\n\n- `exceptions.FlaskChameleonException`\n- `exceptions.FlaskChameleonNotFoundException`\n\n## Resources\n\n- [Full documentation](https://mkennedy.codes/docs/chameleon-flask/)\n- [llms.txt](llms.txt) — Indexed API reference for LLMs\n- [llms-full.txt](llms-full.txt) — Comprehensive documentation for LLMs"
+    "text": "A skill is a package of structured files that teaches an AI coding agent how to work with a specific tool or framework. The skill below was generated by Great Docs from this project’s documentation. Install it in your agent and it will be able to run commands, edit configuration, write content, and troubleshoot problems without step-by-step guidance from you.\n\n  \n    ▶    Install this skill\n  \n  \n    \n      \nAny agent — install with npx:\nnpx skills add https://mkennedy.codes/docs/chameleon-flask/\nCodex / OpenCode\nTell the agent:Fetch the skill file at https://mkennedy.codes/docs/chameleon-flask/skill.md and follow the instructions.\nManual — download the skill file:\ncurl -O https://mkennedy.codes/docs/chameleon-flask/skill.md\nOr browse the SKILL.md file.\n      \n    \n  \n\n\nSKILL.md\n---\nname: chameleon-flask\ndescription: &gt;\n  Adds integration of the Chameleon template language to Flask and Quart. Use when writing Python code that uses the chameleon_flask package.\nlicense: MIT\ncompatibility: Requires Python &gt;=3.10.\n---\n\n# chameleon-flask\n\nAdds integration of the Chameleon template language to Flask and Quart.\n\n## Installation\n\n```bash\npip install chameleon-flask\n```\n\n## API overview\n\n### Configuration\n\nSet up the Chameleon template engine once at app startup.\n\n- `global_init`: Initialize the Chameleon template engine\n- `engine.clear`\n\n### Decorating views\n\nRender templates from Flask/Quart view functions (sync or async) and return friendly 404s.\n\n- `template`: Decorate a Flask or Quart view method to render a Chameleon template\n- `not_found`: Abort the current view and render a friendly 404 page\n\n### Direct rendering\n\nRender a template to a Response or raw HTML without the decorator.\n\n- `response`: Render a Chameleon template directly to a `flask.Response`\n- `engine.render`\n\n### Exceptions\n\nErrors raised by the engine. Importable from `chameleon_flask` directly or from `chameleon_flask.exceptions`.\n\n- `FlaskChameleonException`: Base exception for all chameleon-flask errors\n- `FlaskChameleonNotFoundException`: Raised by `not_found()` to signal that a view should render a 404 page\n\n## Resources\n\n- [Full documentation](https://mkennedy.codes/docs/chameleon-flask/)\n- [llms.txt](llms.txt) — Indexed API reference for LLMs\n- [llms-full.txt](llms-full.txt) — Comprehensive documentation for LLMs"
   },
   {
     "objectID": "changelog.html",
@@ -99,7 +99,14 @@
     "href": "index.html#usage",
     "title": "chameleon-flask",
     "section": "Usage",
-    "text": "Usage\nThis is easy to use. Just create a folder within your web app to hold the templates such as:\n├── app.py\n├── views.py\n│\n├── templates\n│   ├── home\n│   │   └── index.pt\n│   └── shared\n│       └── layout.pt\n\nIn the app startup, tell the library about the folder you wish to use:\nfrom pathlib import Path\nimport chameleon_flask\n\ndev_mode = True\n\nBASE_DIR = Path(__file__).resolve().parent\ntemplate_folder = str(BASE_DIR / 'templates')\nchameleon_flask.global_init(template_folder, auto_reload=dev_mode)\nThen just decorate the Flask or Quart view methods (works on sync and async methods):\n@app.get('/async')\n@chameleon_flask.template('async.pt')\nasync def async_world():\n    await asyncio.sleep(.01)\n    return {'message': \"Let's go async Chameleon!\"}\nThe view method should return a dict to be passed as variables/values to the template.\nIf a flask.Response is returned, the template is skipped and the response along with status_code and other values is directly passed through. This is common for redirects and error responses not meant for this page template. Otherwise the dictionary is used to render async.pt in this example.\nYou can also control the response’s content type and default status code right on the decorator:\n@app.get('/xml')\n@chameleon_flask.template('sample.xml', content_type='application/xml', status_code=201)\ndef xml_response():\n    return {'items': ['pyramid', 'flask', 'fastapi']}"
+    "text": "Usage\nThis is easy to use. Just create a folder within your web app to hold the templates such as:\n├── app.py\n├── views.py\n│\n├── templates\n│   ├── home\n│   │   └── index.pt\n│   └── shared\n│       └── layout.pt\n\nIn the app startup, tell the library about the folder you wish to use:\nfrom pathlib import Path\nimport chameleon_flask\n\ndev_mode = True\n\nBASE_DIR = Path(__file__).resolve().parent\ntemplate_folder = str(BASE_DIR / 'templates')\nchameleon_flask.global_init(template_folder, auto_reload=dev_mode)\nThen just decorate the Flask or Quart view methods (works on sync and async methods):\n@app.get('/async')\n@chameleon_flask.template('async.pt')\nasync def async_world():\n    await asyncio.sleep(.01)\n    return {'message': \"Let's go async Chameleon!\"}\nThe view method should return a dict to be passed as variables/values to the template.\nIf a flask.Response is returned, the template is skipped and the response along with status_code and other values is directly passed through. This is common for redirects and error responses not meant for this page template. Otherwise the dictionary is used to render async.pt in this example.\nEverything works the same on a Quart app — decorate your async Quart views and return a dict or a quart.Response.\nYou can also control the response’s content type and default status code right on the decorator:\n@app.get('/xml')\n@chameleon_flask.template('sample.xml', content_type='application/xml', status_code=201)\ndef xml_response():\n    return {'items': ['pyramid', 'flask', 'fastapi']}"
+  },
+  {
+    "objectID": "index.html#default-template-names",
+    "href": "index.html#default-template-names",
+    "title": "chameleon-flask",
+    "section": "Default template names",
+    "text": "Default template names\nUse the decorator bare and the template file is derived from the view: a function index in views.py maps to {template_folder}/views/index.html, falling back to views/index.pt if no .html file exists. The name is resolved when the view is decorated, so call global_init() before defining views when you rely on this form.\n@app.get('/')\n@chameleon_flask.template\ndef index():\n    return {'message': 'Hello world'}  # renders templates/views/index.pt"
   },
   {
     "objectID": "index.html#friendly-404s-and-errors",
@@ -114,6 +121,13 @@
     "title": "chameleon-flask",
     "section": "Alpine.js, Vue, and friends",
     "text": "Alpine.js, Vue, and friends\nBy default, Chameleon rejects attributes outside its own TAL/METAL/i18n namespaces, which breaks the shorthand syntax used by attribute-based JavaScript frameworks (@click, :class, x-data, and so on). Pass restricted_namespace=False to allow them through unchanged:\nchameleon_flask.global_init(\n    template_folder,\n    auto_reload=dev_mode,\n    restricted_namespace=False,  # Enable Alpine.js / Vue-style attributes\n)"
+  },
+  {
+    "objectID": "index.html#rendering-without-the-decorator",
+    "href": "index.html#rendering-without-the-decorator",
+    "title": "chameleon-flask",
+    "section": "Rendering without the decorator",
+    "text": "Rendering without the decorator\nFor error handlers and other spots where the decorator doesn’t fit, render directly:\nimport chameleon_flask\n\n@app.errorhandler(500)\ndef server_error(e):\n    return chameleon_flask.response('errors/500.pt', status_code=500)\n\n## Or get the raw HTML as a string:\nhtml = chameleon_flask.engine.render('home/index.pt', message='Hi')\nSee the full API reference for every function, parameter, and exception."
   },
   {
     "objectID": "index.html#an-example",
@@ -155,7 +169,7 @@
     "href": "skill.html#exceptions",
     "title": "chameleon-flask",
     "section": "Exceptions",
-    "text": "Exceptions\nErrors raised by the engine; import from chameleon_flask.exceptions.\n\nexceptions.FlaskChameleonException\nexceptions.FlaskChameleonNotFoundException"
+    "text": "Exceptions\nErrors raised by the engine. Importable from chameleon_flask directly or from chameleon_flask.exceptions.\n\nFlaskChameleonException: Base exception for all chameleon-flask errors\nFlaskChameleonNotFoundException: Raised by not_found() to signal that a view should render a 404 page"
   },
   {
     "objectID": "license.html",
@@ -165,15 +179,15 @@
     "text": "▶\n    License features — MIT License\n\n\n\n\n\nPermissions\n\nCommercial use\nModification\nDistribution\nPrivate use\n\n\nConditions\n\nLicense and copyright notice\n\n\nLimitations\n\nLiability\nWarranty\n\n\n\n\nMIT License\n\nCopyright (c) 2020 Michael Kennedy\n\nPermission is hereby granted, free of charge, to any person obtaining a copy\nof this software and associated documentation files (the \"Software\"), to deal\nin the Software without restriction, including without limitation the rights\nto use, copy, modify, merge, publish, distribute, sublicense, and/or sell\ncopies of the Software, and to permit persons to whom the Software is\nfurnished to do so, subject to the following conditions:\n\nThe above copyright notice and this permission notice shall be included in all\ncopies or substantial portions of the Software.\n\nTHE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR\nIMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,\nFITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE\nAUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER\nLIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,\nOUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE\nSOFTWARE."
   },
   {
-    "objectID": "reference/global_init.html",
-    "href": "reference/global_init.html",
-    "title": "global_init()",
+    "objectID": "reference/FlaskChameleonNotFoundException.html",
+    "href": "reference/FlaskChameleonNotFoundException.html",
+    "title": "FlaskChameleonNotFoundException",
     "section": "",
-    "text": "Initialize the Chameleon template engine.\n\n\nUsage\nSource\n\n\nglobal_init(\n    template_folder,\n    auto_reload=False,\n    cache_init=True,\n    restricted_namespace=True\n)\n\n\nCall this once at app startup, before any decorated view runs. With cache_init=True (the default), later calls are silently ignored once the engine is initialized; pass cache_init=False (or call chameleon_flask.engine.clear()) to re-initialize with different settings.\n\n\nParameters\n\n\ntemplate_folder: str\n\nPath to the template directory.\n\nauto_reload=False\n\nWhether to auto-reload templates on change (handy in dev mode).\n\ncache_init=True\n\nIf True, do nothing when the engine is already initialized.\n\nrestricted_namespace=True\n\nIf True, only TAL/METAL/i18n namespaces are allowed. If False, allows attribute-based JS frameworks like Alpine.js to use shorthand syntax (@click, :class, etc.)\n\n\n\n\n\nRaises\n\n\n FlaskChameleonException\n\nIf template_folder is empty or is not a directory.",
+    "text": "Raised by not_found() to signal that a view should render a 404 page.\n\n\nUsage\nSource\n\n\nFlaskChameleonNotFoundException()\n\n\nThe @template decorator catches this exception and renders its template_file with an empty model and status code 404.\n\n\nParameters\n\n\nmessage: str | None = None\n\nOptional description of the missing resource.\n\nfour04template_file: str = \"errors/404.pt\"\n\nThe template to render for the 404 response.\n\n\n\n\n\nAttributes\n\n\nmessage: str | None\n\nThe message passed in, if any.\n\ntemplate_file: str\n\nThe template the decorator will render for the 404 response.",
     "crumbs": [
       "API Reference",
-      "Configuration",
-      "[global_init()]{.doc-object-name .doc-function .doc-label .doc-label-function}"
+      "Exceptions",
+      "[FlaskChameleonNotFoundException]{.doc-object-name .doc-class .doc-label .doc-label-class}"
     ]
   },
   {
@@ -181,7 +195,7 @@
     "href": "reference/index.html",
     "title": "API Reference",
     "section": "",
-    "text": "The complete public API: engine setup, the @template decorator, direct rendering, and exceptions.\n\n\nConfiguration\n\nSet up the Chameleon template engine once at app startup.\n\n\nglobal_init()\n\nInitialize the Chameleon template engine.\n\nengine.clear()\n\nReset the template engine to its uninitialized state.\n\n\n\n\nDecorating views\n\nRender templates from Flask/Quart view functions (sync or async) and return friendly 404s.\n\n\ntemplate()\n\nDecorate a Flask or Quart view method to render a Chameleon template.\n\nnot_found()\n\nAbort the current view and render a friendly 404 page.\n\n\n\n\nDirect rendering\n\nRender a template to a Response or raw HTML without the decorator.\n\n\nresponse()\n\nRender a Chameleon template directly to a flask.Response.\n\nengine.render()\n\nRender a Chameleon template to an HTML string.\n\n\n\n\nExceptions\n\nErrors raised by the engine; import from chameleon_flask.exceptions.\n\n\nexceptions.FlaskChameleonException\n\nBase exception for all chameleon-flask errors.\n\nexceptions.FlaskChameleonNotFoundException\n\nRaised by not_found() to signal that a view should render a 404 page.",
+    "text": "The complete public API: engine setup, the @template decorator, direct rendering, and exceptions.\n\n\nConfiguration\n\nSet up the Chameleon template engine once at app startup.\n\n\nglobal_init()\n\nInitialize the Chameleon template engine.\n\nengine.clear()\n\nReset the template engine to its uninitialized state.\n\n\n\n\nDecorating views\n\nRender templates from Flask/Quart view functions (sync or async) and return friendly 404s.\n\n\ntemplate()\n\nDecorate a Flask or Quart view method to render a Chameleon template.\n\nnot_found()\n\nAbort the current view and render a friendly 404 page.\n\n\n\n\nDirect rendering\n\nRender a template to a Response or raw HTML without the decorator.\n\n\nresponse()\n\nRender a Chameleon template directly to a flask.Response.\n\nengine.render()\n\nRender a Chameleon template to an HTML string.\n\n\n\n\nExceptions\n\nErrors raised by the engine. Importable from chameleon_flask directly or from chameleon_flask.exceptions.\n\n\nFlaskChameleonException\n\nBase exception for all chameleon-flask errors.\n\nFlaskChameleonNotFoundException\n\nRaised by not_found() to signal that a view should render a 404 page.",
     "crumbs": [
       "API Reference",
       "API Index"
@@ -192,7 +206,7 @@
     "href": "reference/template.html",
     "title": "template()",
     "section": "",
-    "text": "Decorate a Flask or Quart view method to render a Chameleon template.\n\n\nUsage\nSource\n\n\ntemplate(template_file=None, content_type=\"text/html\", status_code=200)\n\n\nWorks on both sync and async views, bare (@template) or with arguments (@template('home/index.pt')). When used bare, the template file is derived from the view as {module}/{function_name}.html, falling back to .pt when no .html file exists in the template folder.\nThe decorated view must return either a dict (passed to the template as the model) or a Flask/Quart Response (passed through untouched, e.g. for redirects).\n\n\nParameters\n\n\ntemplate_file: Optional[Union[Callable, str]] = None\n\nOptional, the Chameleon template file (path relative to the template folder, e.g. home/index.pt). Derived from the view when omitted.\n\ncontent_type: str = \"text/html\"\n\nThe content type of the response (defaults to text/html).\n\nstatus_code: int = 200\n\nDefault status code for responses. For example 201 on a POST/create action.\n\n\n\n\n\nReturns\n\n\n\n\nThe decorator to be consumed by Flask or Quart.\n\n\n\n\n\nRaises\n\n\n FlaskChameleonException\n\nAt request time, if the view returns anything other than a dict or a recognized Response object.",
+    "text": "Decorate a Flask or Quart view method to render a Chameleon template.\n\n\nUsage\nSource\n\n\ntemplate(template_file=None, content_type=\"text/html\", status_code=200)\n\n\nWorks on both sync and async views, bare (@template) or with arguments (@template('home/index.pt')). When used bare, the template file is derived from the view as {module}/{function_name}.html, falling back to .pt when no .html file exists in the template folder.\nThe decorated view must return either a dict (passed to the template as the model) or a Flask/Quart Response (passed through untouched, e.g. for redirects).\nNote that the template file name is resolved once, when the view is decorated, not per request. When relying on the bare form, call global_init() before defining your views; otherwise the .html-or-.pt check assumes a folder named templates relative to the working directory.\n\n\nParameters\n\n\ntemplate_file: Callable[…, Any] | str | None = None\n\nOptional, the Chameleon template file (path relative to the template folder, e.g. home/index.pt). Derived from the view when omitted.\n\ncontent_type: str = \"text/html\"\n\nThe content type of the response (defaults to text/html).\n\nstatus_code: int = 200\n\nDefault status code for responses. For example 201 on a POST/create action.\n\n\n\n\n\nReturns\n\n\n Callable[…, Any]\n\nThe decorator to be consumed by Flask or Quart.\n\n\n\n\n\nRaises\n\n\n FlaskChameleonException\n\nAt request time, if the view returns anything other than a dict or a recognized Response object, or if global_init() was never called.\n\n\n\n\n\nExamples\n@app.get('/')\n@chameleon_flask.template('home/index.pt')\ndef index():\n    return {'message': 'Hello world'}\n\n\n@app.get('/listing')\n@chameleon_flask.template  # Bare: renders {module}/{function_name}.html or .pt\nasync def listing():\n    return {'items': await db.all_items()}",
     "crumbs": [
       "API Reference",
       "Decorating views",
@@ -204,7 +218,7 @@
     "href": "reference/not_found.html",
     "title": "not_found()",
     "section": "",
-    "text": "Abort the current view and render a friendly 404 page.\n\n\nUsage\nSource\n\n\nnot_found(four04template_file=\"errors/404.pt\")\n\n\nCall this inside a view decorated with @template, e.g. when a database lookup comes up empty. The decorator catches the raised exception and renders the given 404 template with an empty model, text/html content type, and status code 404.\n\n\nParameters\n\n\nfour04template_file: str = \"errors/404.pt\"\n\nThe template to render for the 404 response (defaults to errors/404.pt).\n\n\n\n\n\nRaises\n\n\n FlaskChameleonNotFoundException\n\nAlways; the @template decorator turns it into the rendered 404 response.",
+    "text": "Abort the current view and render a friendly 404 page.\n\n\nUsage\nSource\n\n\nnot_found(four04template_file=\"errors/404.pt\")\n\n\nCall this inside a view decorated with @template, e.g. when a database lookup comes up empty. The decorator catches the raised exception and renders the given 404 template with an empty model, text/html content type, and status code 404 (the view’s own content_type and status_code do not apply to the 404 path).\n\n\nParameters\n\n\nfour04template_file: str = \"errors/404.pt\"\n\nThe template to render for the 404 response. Defaults to errors/404.pt; an empty or blank value falls back to that same default.\n\n\n\n\n\nRaises\n\n\n FlaskChameleonNotFoundException\n\nAlways; the @template decorator turns it into the rendered 404 response.\n\n\n\n\n\nExamples\n@app.get('/catalog/item/&lt;int:item_id&gt;')\n@chameleon_flask.template('catalog/item.pt')\ndef item(item_id: int):\n    item = service.get_item_by_id(item_id)\n    if not item:\n        chameleon_flask.not_found()\n\n    return {'item': item}",
     "crumbs": [
       "API Reference",
       "Decorating views",
