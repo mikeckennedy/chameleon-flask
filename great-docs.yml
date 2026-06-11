@@ -1,0 +1,63 @@
+# Great Docs Configuration
+# See https://posit-dev.github.io/great-docs/user-guide/configuration.html
+#
+# Build with: python scripts/build_docs.py  (mirrors the site into the committed docs/ folder)
+
+display_name: chameleon-flask
+parser: google
+dynamic: true
+jupyter: python3
+
+# Subpath hosting: drives Quarto's base path so CSS/JS/nav resolve. Keep trailing slash.
+site_url: "https://mkennedy.codes/docs/chameleon-flask/"
+
+# Sitemap/robots/canonical/og:url use a SEPARATE base URL that Great Docs auto-detects from the
+# GitHub repo (-> mikeckennedy.github.io/chameleon-flask) and does NOT fall back to site_url.
+# Set it explicitly or the sitemap points at the wrong domain.
+seo:
+  canonical:
+    base_url: "https://mkennedy.codes/docs/chameleon-flask/"
+
+repo: https://github.com/mikeckennedy/chameleon-flask
+github_style: widget
+source:
+  enabled: true
+  branch: main
+  placement: usage
+pypi: true
+
+# Great Docs defaults mcp.enabled to true, rendering an empty "MCP" tab even when the
+# project ships no MCP server. Keep this off.
+mcp:
+  enabled: false
+
+authors:
+  - name: Michael Kennedy
+    role: Author
+    email: michael@talkpython.fm
+    github: mikeckennedy
+
+reference:
+  title: "API Reference"
+  desc: "The complete public API: engine setup, the @template decorator, direct rendering, and exceptions."
+  sections:
+    - title: Configuration
+      desc: "Set up the Chameleon template engine once at app startup."
+      contents:
+        - global_init
+        - engine.clear
+    - title: Decorating views
+      desc: "Render templates from Flask/Quart view functions (sync or async) and return friendly 404s."
+      contents:
+        - template
+        - not_found
+    - title: Direct rendering
+      desc: "Render a template to a Response or raw HTML without the decorator."
+      contents:
+        - response
+        - engine.render
+    - title: Exceptions
+      desc: "Errors raised by the engine; import from chameleon_flask.exceptions."
+      contents:
+        - exceptions.FlaskChameleonException
+        - exceptions.FlaskChameleonNotFoundException

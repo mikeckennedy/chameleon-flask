@@ -1,0 +1,11 @@
+{
+  "skills": [
+    {
+      "name": "chameleon-flask",
+      "description": "Adds integration of the Chameleon template language to Flask and Quart. Use when writing Python code that uses the chameleon_flask package.",
+      "files": [
+        "SKILL.md"
+      ]
+    }
+  ]
+}

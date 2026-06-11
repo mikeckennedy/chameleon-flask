@@ -1,0 +1,31 @@
+# chameleon_flask
+
+> Adds integration of the Chameleon template language to Flask and Quart.
+
+## Docs
+
+### API Reference
+
+#### Configuration
+> Set up the Chameleon template engine once at app startup.
+
+- [global_init](https://mkennedy.codes/docs/chameleon-flask/reference/global_init.html): Initialize the Chameleon template engine
+- [engine.clear](https://mkennedy.codes/docs/chameleon-flask/reference/engine.clear.html)
+
+#### Decorating views
+> Render templates from Flask/Quart view functions (sync or async) and return friendly 404s.
+
+- [template](https://mkennedy.codes/docs/chameleon-flask/reference/template.html): Decorate a Flask or Quart view method to render a Chameleon template
+- [not_found](https://mkennedy.codes/docs/chameleon-flask/reference/not_found.html): Abort the current view and render a friendly 404 page
+
+#### Direct rendering
+> Render a template to a Response or raw HTML without the decorator.
+
+- [response](https://mkennedy.codes/docs/chameleon-flask/reference/response.html): Render a Chameleon template directly to a `flask.Response`
+- [engine.render](https://mkennedy.codes/docs/chameleon-flask/reference/engine.render.html)
+
+#### Exceptions
+> Errors raised by the engine; import from chameleon_flask.exceptions.
+
+- [exceptions.FlaskChameleonException](https://mkennedy.codes/docs/chameleon-flask/reference/exceptions.FlaskChameleonException.html)
+- [exceptions.FlaskChameleonNotFoundException](https://mkennedy.codes/docs/chameleon-flask/reference/exceptions.FlaskChameleonNotFoundException.html)
