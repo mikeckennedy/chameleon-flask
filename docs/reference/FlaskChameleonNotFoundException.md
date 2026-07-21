@@ -7,7 +7,9 @@ Raised by [not_found()](not_found.md#chameleon_flask.not_found) to signal that a
 Usage
 
 ``` python
-FlaskChameleonNotFoundException()
+FlaskChameleonNotFoundException(
+    message=None, four04template_file="errors/404.pt"
+)
 ```
 
 

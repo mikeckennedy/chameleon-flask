@@ -4,3 +4,7 @@ User-agent: *
 Allow: /
 
 Sitemap: https://mkennedy.codes/docs/chameleon-flask/sitemap.xml
+
+# AI agent context files
+Llms-txt: https://mkennedy.codes/docs/chameleon-flask/llms.txt
+Llms-txt: https://mkennedy.codes/docs/chameleon-flask/llms-full.txt

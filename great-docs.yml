@@ -41,6 +41,10 @@ include_in_header:
 # enrich it with knowledge agents can't infer from the API signatures.
 # See https://posit-dev.github.io/great-docs/skills.html
 skill:
+  # Hand-written prose injected into the generated skill body: Chameleon/TAL template
+  # syntax, METAL layouts, resolution rules, and wiring — things the API signatures
+  # can't convey. Adapted from the chameleon-flask_reference.md agent guide.
+  extra_body: skill_extra_body.md
   gotchas:
     - "global_init() is one-shot by default: with cache_init=True, later calls are silently ignored. Pass cache_init=False or call chameleon_flask.engine.clear() to re-initialize."
     - "The bare @template form resolves the template file name once, at decoration time — call global_init() before defining views that rely on it."
