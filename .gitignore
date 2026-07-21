@@ -166,3 +166,4 @@ cython_debug/
 # Great Docs build directory (ephemeral; the published site is mirrored into /docs)
 /great-docs/
 docs/build-timings.json
+.DS_Store
