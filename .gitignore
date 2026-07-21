@@ -167,3 +167,4 @@ cython_debug/
 /great-docs/
 docs/build-timings.json
 .DS_Store
+/temp/
