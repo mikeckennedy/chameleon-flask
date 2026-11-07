@@ -3,6 +3,20 @@
 This changelog is generated automatically from [GitHub Releases](https://github.com/mikeckennedy/chameleon-flask/releases).
 
 
+# v0.6.3
+
+*2026-11-07* · [GitHub](https://github.com/mikeckennedy/chameleon-flask/releases/tag/v0.6.3)
+
+Decorator order no longer matters for async views on Flask, plus a user guide
+
+- On Flask with Python 3.12 or newer, an `async def` view works with your own decorators stacked in any order around `[@template](https://github.com/template)`, with or without `functools.wraps`. Previously a sync decorator placed outside `[@template](https://github.com/template)` made Flask fail with "The view function did not return a valid response … it was a coroutine". The decorated view now returns an object that awaits like the coroutine (so `await`, `asyncio.run()` and `create_task()` all accept it) and is also a WSGI callable, so Flask can run it to completion when a sync decorator hands it back unawaited. Quart, Python 3.10 and 3.11, sync views, and direct `asyncio.run()` calls on decorated views behave exactly as before.
+- New user guide at https://mkennedy.codes/docs/chameleon-flask/user-guide/: getting started, a Chameleon template primer, the `[@template](https://github.com/template)` rulebook, friendly 404s, async views on Flask and Quart with a verified decorator-order table, testing, a troubleshooting field guide, how it works, and an FAQ. Every behaviour described was run before it was written.
+- The docs build now fails if the agent files or the user guide pages are missing from the output.
+- Tests drive each decorator arrangement through Flask's test client.
+
+No breaking changes.
+
+
 # v0.6.2
 
 *2026-11-07* · [GitHub](https://github.com/mikeckennedy/chameleon-flask/releases/tag/v0.6.2)

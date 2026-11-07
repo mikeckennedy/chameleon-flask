@@ -138,7 +138,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
       <div class="navbar-container container-fluid">
       <div class="navbar-brand-container mx-auto">
     <a class="navbar-brand" href="./index.html">
-    <span class="navbar-title">chameleon-flask <span class="version-badge" title="Released 2026-11-07">v0.6.2</span></span>
+    <span class="navbar-title">chameleon-flask <span class="version-badge" title="Released 2026-11-07">v0.6.3</span></span>
     </a>
   </div>
             <div id="quarto-search" class=""></div>
@@ -182,7 +182,8 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
     <h2 id="toc-title">On this page</h2>
    
   <ul class="collapse">
-  <li><a href="#v0.6.2" id="toc-v0.6.2" class="nav-link active" data-scroll-target="#v0.6.2">v0.6.2</a></li>
+  <li><a href="#v0.6.3" id="toc-v0.6.3" class="nav-link active" data-scroll-target="#v0.6.3">v0.6.3</a></li>
+  <li><a href="#v0.6.2" id="toc-v0.6.2" class="nav-link" data-scroll-target="#v0.6.2">v0.6.2</a></li>
   <li><a href="#v0.6.1" id="toc-v0.6.1" class="nav-link" data-scroll-target="#v0.6.1">v0.6.1</a></li>
   <li><a href="#v0.6.0" id="toc-v0.6.0" class="nav-link" data-scroll-target="#v0.6.0">v0.6.0</a>
   <ul class="collapse">
@@ -220,6 +221,18 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 
 
 <p>This changelog is generated automatically from <a href="https://github.com/mikeckennedy/chameleon-flask/releases">GitHub Releases</a>.</p>
+<section id="v0.6.3" class="level1 changelog-version">
+<h1 class="changelog-version">v0.6.3</h1>
+<p><em>2026-11-07</em> · <a href="https://github.com/mikeckennedy/chameleon-flask/releases/tag/v0.6.3">GitHub</a></p>
+<p>Decorator order no longer matters for async views on Flask, plus a user guide</p>
+<ul>
+<li>On Flask with Python 3.12 or newer, an <code>async def</code> view works with your own decorators stacked in any order around <code>[@template](https://github.com/template)</code>, with or without <code>functools.wraps</code>. Previously a sync decorator placed outside <code>[@template](https://github.com/template)</code> made Flask fail with “The view function did not return a valid response … it was a coroutine”. The decorated view now returns an object that awaits like the coroutine (so <code>await</code>, <code>asyncio.run()</code> and <code>create_task()</code> all accept it) and is also a WSGI callable, so Flask can run it to completion when a sync decorator hands it back unawaited. Quart, Python 3.10 and 3.11, sync views, and direct <code>asyncio.run()</code> calls on decorated views behave exactly as before.</li>
+<li>New user guide at https://mkennedy.codes/docs/chameleon-flask/user-guide/: getting started, a Chameleon template primer, the <code>[@template](https://github.com/template)</code> rulebook, friendly 404s, async views on Flask and Quart with a verified decorator-order table, testing, a troubleshooting field guide, how it works, and an FAQ. Every behaviour described was run before it was written.</li>
+<li>The docs build now fails if the agent files or the user guide pages are missing from the output.</li>
+<li>Tests drive each decorator arrangement through Flask’s test client.</li>
+</ul>
+<p>No breaking changes.</p>
+</section>
 <section id="v0.6.2" class="level1 changelog-version">
 <h1 class="changelog-version">v0.6.2</h1>
 <p><em>2026-11-07</em> · <a href="https://github.com/mikeckennedy/chameleon-flask/releases/tag/v0.6.2">GitHub</a></p>
