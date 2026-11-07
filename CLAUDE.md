@@ -8,7 +8,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 - Python >= 3.10; runtime deps are just `flask[async]` and `Chameleon` (unpinned)
 - Build backend: hatchling; version is **hardcoded** in `pyproject.toml` (`[project].version`) — bump it manually (hatch-vcs is listed in build requires but not wired up)
-- Publishing is manual via twine; `dist/`, `tests/`, `example/`, `ruff.toml` etc. are excluded from sdist/wheel builds
+- Publishing is manual with `uv build` followed by Michael's `uvpypi` shell alias (`uv publish` with his token), not twine, even though twine is still listed in the dev dependencies; `dist/`, `tests/`, `example/`, `ruff.toml` etc. are excluded from sdist/wheel builds
 
 ## Commands
 
