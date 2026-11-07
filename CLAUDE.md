@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-`chameleon_flask` (currently v0.6.2) integrates the Chameleon template language with Flask **and Quart**. It is a small library: three modules in `chameleon_flask/`, a test suite in `tests/`, and a runnable demo in `example/example_app.py`. The project began as a fork of the sibling `fastapi-chameleon` project; there is no FastAPI support here.
+`chameleon_flask` (currently v0.6.3) integrates the Chameleon template language with Flask **and Quart**. It is a small library: three modules in `chameleon_flask/`, a test suite in `tests/`, and a runnable demo in `example/example_app.py`. The project began as a fork of the sibling `fastapi-chameleon` project; there is no FastAPI support here.
 
 - Python >= 3.10; runtime deps are just `flask[async]` and `Chameleon` (unpinned)
 - Build backend: hatchling; version is **hardcoded** in `pyproject.toml` (`[project].version`) — bump it manually (hatch-vcs is listed in build requires but not wired up)
