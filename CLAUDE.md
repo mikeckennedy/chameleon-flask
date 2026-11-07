@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-`chameleon_flask` (currently v0.6.0) integrates the Chameleon template language with Flask **and Quart**. It is a small library: three modules in `chameleon_flask/`, a test suite in `tests/`, and a runnable demo in `example/example_app.py`. The project began as a fork of the sibling `fastapi-chameleon` project, which explains the FastAPI-style code that still lingers in the README's `not_found` example — a stale copy-paste artifact, not real FastAPI support.
+`chameleon_flask` (currently v0.6.1) integrates the Chameleon template language with Flask **and Quart**. It is a small library: three modules in `chameleon_flask/`, a test suite in `tests/`, and a runnable demo in `example/example_app.py`. The project began as a fork of the sibling `fastapi-chameleon` project; there is no FastAPI support here.
 
 - Python >= 3.10; runtime deps are just `flask[async]` and `Chameleon` (unpinned)
 - Build backend: hatchling; version is **hardcoded** in `pyproject.toml` (`[project].version`) — bump it manually (hatch-vcs is listed in build requires but not wired up)
@@ -12,22 +12,22 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Commands
 
-Dev dependencies (pytest, pytest-clarity, twine, hatchling, setuptools, plus `-r requirements.txt`) live in `requirements-dev.txt`, **not** in `pyproject.toml` — there are no `[dependency-groups]`, so a plain `uv run pytest` fails. Two ways to run tests:
+Dev dependencies (pytest, pytest-clarity, twine, hatchling, setuptools, great-docs, plus `-r requirements.txt`) live in `requirements-dev.txt` and are mirrored in the `dev` extra in `pyproject.toml`. There are no `[dependency-groups]` and no `uv.lock`.
+
+**Do not run tests with `uv run`.** On this machine `uv run --with pytest pytest` decided the existing `venv/` was not a valid project environment and silently recreated it (Nov 2026), wiping great-docs, ruff and every other dev tool. Use the venv's interpreter directly:
 
 ```bash
-# Zero-setup (ephemeral pytest overlay, doesn't touch the venv):
-uv run --with pytest pytest tests/ -q
+# One-time (or after the venv is rebuilt):
+uv pip install --python venv/bin/python -r requirements-dev.txt ruff
 
-# Or install dev deps into the venv first, then plain pytest works:
-pip install -r requirements-dev.txt
-pytest tests/ -q
+venv/bin/python -m pytest tests/ -q
 ```
 
 Single file / single test:
 
 ```bash
-uv run --with pytest pytest tests/test_render.py -q
-uv run --with pytest pytest tests/test_render.py::test_default_template_name_pt -q
+venv/bin/python -m pytest tests/test_render.py -q
+venv/bin/python -m pytest tests/test_render.py::test_default_template_name_pt -q
 ```
 
 `tests/conftest.py` locates templates via `pytestconfig.rootdir / 'tests' / 'templates'`. Pytest anchors rootdir to the repo root (via `pyproject.toml`/`tox.ini`) regardless of the invocation directory, so running from a subdirectory is fine — but do **not** pass a custom `--rootdir`, which breaks template resolution for most of the suite.
@@ -74,6 +74,11 @@ The engine is process-global, not app-scoped:
 
 ## Known wrinkles
 
-- The README's `not_found()` example still uses FastAPI route syntax (`'/catalog/item/{item_id}'`, `item.dict()`) — a leftover from the fork. The README also doesn't document `restricted_namespace`, `content_type`/`status_code` on `@template`, or the `response()`/`render()` functions.
+- A view model may not contain the key `encoding`: Chameleon's `PageTemplate.render` reserves it as a named argument, so `render()` raises a clear `FlaskChameleonException` for it. `translate` and `target_language` are Chameleon render arguments too, but they pass through to the template.
+- Sync/async dispatch is decided once at decoration time. `@template` looks through `functools.wraps` chains (`inspect.unwrap`) so a sync decorator stacked on an `async def` still gets the awaiting wrapper; the async wrapper also awaits any awaitable result. If the outer decorator does not use `functools.wraps`, the sync wrapper closes the stray coroutine and raises a `FlaskChameleonException` telling the user to move `@template` next to the `async def`. Covered by `tests/test_edge_cases.py`.
 - Commit dc0cdf0 renamed the `mimetype` kwarg to `content_type` (breaking change) — use `content_type` in all new code and docs.
 - `render()` and `clear()` are importable from `chameleon_flask.engine` but intentionally absent from the package `__all__`.
+
+## Docs build
+
+Docs are built with Great Docs (`great-docs.yml`) via `python scripts/build_docs.py`, which mirrors the ephemeral `great-docs/_site` into the committed `docs/` folder and then runs `scripts/postprocess_site.py`. That post-process step rewrites the navbar version badge to the `pyproject.toml` version: Great Docs otherwise takes it from the latest GitHub Release, so docs built before the release exists (the normal order) show the previous version. It prints the replacement count; `0` means Great Docs changed its badge markup. Do not run `great-docs build` directly and commit `docs/` without the post-process step.

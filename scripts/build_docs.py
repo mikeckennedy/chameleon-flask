@@ -12,7 +12,8 @@ import subprocess
 import sys
 from pathlib import Path
 
-REPO_ROOT = Path(__file__).resolve().parent.parent  # pyproject.toml + great-docs.yml live here
+_SCRIPTS = Path(__file__).resolve().parent
+REPO_ROOT = _SCRIPTS.parent  # pyproject.toml + great-docs.yml live here
 SITE = REPO_ROOT / 'great-docs' / '_site'
 DEST = REPO_ROOT / 'docs'
 
@@ -33,7 +34,10 @@ def main() -> int:
 
     file_count = sum(1 for p in DEST.rglob('*') if p.is_file())
     print(f'Mirrored {SITE} -> {DEST} ({file_count} files)')
-    return 0
+
+    # Fix up Great Docs output that is wrong at build time (e.g. the navbar version badge,
+    # which otherwise shows the previous GitHub release). See postprocess_site.py.
+    return subprocess.run([sys.executable, str(_SCRIPTS / 'postprocess_site.py')], cwd=REPO_ROOT).returncode
 
 
 if __name__ == '__main__':

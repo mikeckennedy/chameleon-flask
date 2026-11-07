@@ -107,10 +107,19 @@ def render(template_file: str, **template_data: Any) -> str:
         The rendered HTML as a string.
 
     Raises:
-        FlaskChameleonException: If `global_init()` has not been called yet.
+        FlaskChameleonException: If `global_init()` has not been called yet, or if
+            `template_data` contains the key `encoding`, which Chameleon reserves as a
+            render argument and cannot expose to the template.
     """
     if not __templates:
         raise FlaskChameleonException('You must call global_init() before rendering templates.')
+
+    if 'encoding' in template_data:
+        msg = (
+            "The template model cannot contain the key 'encoding': Chameleon reserves it as a "
+            'render argument. Rename it in the view (for example to text_encoding).'
+        )
+        raise FlaskChameleonException(msg)
 
     page: PageTemplate = __templates[template_file]
     return page.render(encoding='utf-8', **template_data)
@@ -166,6 +175,11 @@ def template(
     per request. When relying on the bare form, call `global_init()` before defining
     your views; otherwise the `.html`-or-`.pt` check assumes a folder named `templates`
     relative to the working directory.
+
+    Async views are detected at decoration time. A sync decorator stacked between
+    `@template` and an `async def` is handled as long as it uses `functools.wraps`;
+    without it the view's coroutine cannot be awaited and a clear error is raised, so
+    place `@template` closest to the `async def` in that case.
 
     Args:
         template_file: Optional, the Chameleon template file (path relative to the
@@ -230,18 +244,38 @@ def template(
         @wraps(f)
         def sync_view_method(*args, **kwargs) -> flask.Response:
             try:
-                return build_response(f(*args, **kwargs))
+                result = f(*args, **kwargs)
+            except FlaskChameleonNotFoundException as nfe:
+                return not_found_response(nfe)
+
+            if inspect.isawaitable(result):
+                if inspect.iscoroutine(result):
+                    result.close()  # Avoid the "coroutine was never awaited" warning.
+                msg = (
+                    f'The view {f.__qualname__} returned an awaitable from a sync call path. Place @template '
+                    'directly on the async def, or make the outer decorator use functools.wraps so the '
+                    'async view can be detected.'
+                )
+                raise FlaskChameleonException(msg)
+
+            try:
+                return build_response(result)
             except FlaskChameleonNotFoundException as nfe:
                 return not_found_response(nfe)
 
         @wraps(f)
         async def async_view_method(*args, **kwargs) -> flask.Response:
             try:
-                return build_response(await f(*args, **kwargs))
+                result = f(*args, **kwargs)
+                if inspect.isawaitable(result):
+                    result = await result
+                return build_response(result)
             except FlaskChameleonNotFoundException as nfe:
                 return not_found_response(nfe)
 
-        if inspect.iscoroutinefunction(f):
+        # Also look through functools.wraps chains so a sync decorator stacked on top of an
+        # async def still gets the awaiting wrapper (and Flask/Quart see a coroutine function).
+        if inspect.iscoroutinefunction(f) or inspect.iscoroutinefunction(inspect.unwrap(f)):
             return async_view_method
         else:
             return sync_view_method
