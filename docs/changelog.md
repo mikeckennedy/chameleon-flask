@@ -3,6 +3,21 @@
 This changelog is generated automatically from [GitHub Releases](https://github.com/mikeckennedy/chameleon-flask/releases).
 
 
+# v0.6.2
+
+*2026-11-07* · [GitHub](https://github.com/mikeckennedy/chameleon-flask/releases/tag/v0.6.2)
+
+Clearer errors and wraps-aware async detection
+
+- `[@template](https://github.com/template)` now looks through `functools.wraps` chains when deciding whether a view is async, so an `async def` wrapped by your own sync decorator is awaited correctly instead of failing with "Invalid return type coroutine".
+- When the outer decorator hides the `async def` (no `functools.wraps`), the stray coroutine is closed and a [FlaskChameleonException](reference/FlaskChameleonException.html#chameleon_flask.FlaskChameleonException) tells you to put `[@template](https://github.com/template)` directly on the `async def`.
+- A view model containing the key `encoding` now raises a clear [FlaskChameleonException](reference/FlaskChameleonException.html#chameleon_flask.FlaskChameleonException) (Chameleon reserves it as a render argument) instead of a confusing Chameleon `TypeError`.
+- Tests covering all three edge cases.
+- Docs: README and API reference rewritten in a narrative voice, site rebuilt with Great Docs 0.17.0, and the navbar version badge is now taken from `pyproject.toml` at build time instead of the latest GitHub release.
+
+No breaking changes: each of the fixed code paths previously failed.
+
+
 # v0.6.1
 
 *2026-06-11* · [GitHub](https://github.com/mikeckennedy/chameleon-flask/releases/tag/v0.6.1)
@@ -112,3 +127,13 @@ Allow quart and flask raw responses.
 # v0.0.1
 
 *2024-11-13* · [GitHub](https://github.com/mikeckennedy/chameleon-flask/releases/tag/v0.0.1)
+
+First release, published to PyPI on 2024-11-07.
+
+chameleon-flask began as a copy of the sibling [fastapi-chameleon](https://github.com/mikeckennedy/fastapi-chameleon) project, reworked for Flask and Quart. The package was first named the other way round; it became `chameleon-flask` because that name on PyPI was already taken.
+
+- `global_init(template_folder, auto_reload=False, cache_init=True)` sets up one process-wide Chameleon template loader.
+- `[@template](https://github.com/template)` decorates sync and async Flask/Quart views; the view returns a `dict` for the template model, or a `flask.Response` to pass straight through (redirects and the like). Usable bare, deriving the template name from the view, or with an explicit template path.
+- [not_found()](reference/not_found.html#chameleon_flask.not_found) renders a friendly 404 page (`errors/404.pt` by default) from inside a view.
+- [response()](reference/response.html#chameleon_flask.response) renders a template directly to a `flask.Response`.
+- Example app and a test suite; packaging via `pyproject.toml`.

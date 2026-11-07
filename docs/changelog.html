@@ -138,7 +138,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
       <div class="navbar-container container-fluid">
       <div class="navbar-brand-container mx-auto">
     <a class="navbar-brand" href="./index.html">
-    <span class="navbar-title">chameleon-flask <span class="version-badge" title="Released 2026-06-11">v0.6.1</span></span>
+    <span class="navbar-title">chameleon-flask <span class="version-badge" title="Released 2026-11-07">v0.6.2</span></span>
     </a>
   </div>
             <div id="quarto-search" class=""></div>
@@ -178,7 +178,8 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
     <h2 id="toc-title">On this page</h2>
    
   <ul class="collapse">
-  <li><a href="#v0.6.1" id="toc-v0.6.1" class="nav-link active" data-scroll-target="#v0.6.1">v0.6.1</a></li>
+  <li><a href="#v0.6.2" id="toc-v0.6.2" class="nav-link active" data-scroll-target="#v0.6.2">v0.6.2</a></li>
+  <li><a href="#v0.6.1" id="toc-v0.6.1" class="nav-link" data-scroll-target="#v0.6.1">v0.6.1</a></li>
   <li><a href="#v0.6.0" id="toc-v0.6.0" class="nav-link" data-scroll-target="#v0.6.0">v0.6.0</a>
   <ul class="collapse">
   <li><a href="#new-feature-namespace-restriction-control" id="toc-new-feature-namespace-restriction-control" class="nav-link" data-scroll-target="#new-feature-namespace-restriction-control">New Feature: Namespace Restriction Control</a></li>
@@ -215,6 +216,19 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 
 
 <p>This changelog is generated automatically from <a href="https://github.com/mikeckennedy/chameleon-flask/releases">GitHub Releases</a>.</p>
+<section id="v0.6.2" class="level1 changelog-version">
+<h1 class="changelog-version">v0.6.2</h1>
+<p><em>2026-11-07</em> · <a href="https://github.com/mikeckennedy/chameleon-flask/releases/tag/v0.6.2">GitHub</a></p>
+<p>Clearer errors and wraps-aware async detection</p>
+<ul>
+<li><code>[@template](https://github.com/template)</code> now looks through <code>functools.wraps</code> chains when deciding whether a view is async, so an <code>async def</code> wrapped by your own sync decorator is awaited correctly instead of failing with “Invalid return type coroutine”.</li>
+<li>When the outer decorator hides the <code>async def</code> (no <code>functools.wraps</code>), the stray coroutine is closed and a <a href="reference/FlaskChameleonException.html#chameleon_flask.FlaskChameleonException" class="gdls-link gdls-code">FlaskChameleonException</a> tells you to put <code>[@template](https://github.com/template)</code> directly on the <code>async def</code>.</li>
+<li>A view model containing the key <code>encoding</code> now raises a clear <a href="reference/FlaskChameleonException.html#chameleon_flask.FlaskChameleonException" class="gdls-link gdls-code">FlaskChameleonException</a> (Chameleon reserves it as a render argument) instead of a confusing Chameleon <code>TypeError</code>.</li>
+<li>Tests covering all three edge cases.</li>
+<li>Docs: README and API reference rewritten in a narrative voice, site rebuilt with Great Docs 0.17.0, and the navbar version badge is now taken from <code>pyproject.toml</code> at build time instead of the latest GitHub release.</li>
+</ul>
+<p>No breaking changes: each of the fixed code paths previously failed.</p>
+</section>
 <section id="v0.6.1" class="level1 changelog-version">
 <h1 class="changelog-version">v0.6.1</h1>
 <p><em>2026-06-11</em> · <a href="https://github.com/mikeckennedy/chameleon-flask/releases/tag/v0.6.1">GitHub</a></p>
@@ -300,6 +314,15 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <section id="v0.0.1" class="level1 changelog-version">
 <h1 class="changelog-version">v0.0.1</h1>
 <p><em>2024-11-13</em> · <a href="https://github.com/mikeckennedy/chameleon-flask/releases/tag/v0.0.1">GitHub</a></p>
+<p>First release, published to PyPI on 2024-11-07.</p>
+<p>chameleon-flask began as a copy of the sibling <a href="https://github.com/mikeckennedy/fastapi-chameleon">fastapi-chameleon</a> project, reworked for Flask and Quart. The package was first named the other way round; it became <code>chameleon-flask</code> because that name on PyPI was already taken.</p>
+<ul>
+<li><code>global_init(template_folder, auto_reload=False, cache_init=True)</code> sets up one process-wide Chameleon template loader.</li>
+<li><code>[@template](https://github.com/template)</code> decorates sync and async Flask/Quart views; the view returns a <code>dict</code> for the template model, or a <code>flask.Response</code> to pass straight through (redirects and the like). Usable bare, deriving the template name from the view, or with an explicit template path.</li>
+<li><a href="reference/not_found.html#chameleon_flask.not_found" class="gdls-link gdls-code">not_found()</a> renders a friendly 404 page (<code>errors/404.pt</code> by default) from inside a view.</li>
+<li><a href="reference/response.html#chameleon_flask.response" class="gdls-link gdls-code">response()</a> renders a template directly to a <code>flask.Response</code>.</li>
+<li>Example app and a test suite; packaging via <code>pyproject.toml</code>.</li>
+</ul>
 
 
 </section>
