@@ -175,6 +175,10 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
           <div class="collapse navbar-collapse" id="navbarCollapse">
             <ul class="navbar-nav navbar-nav-scroll me-auto">
   <li class="nav-item">
+    <a class="nav-link" href="../user-guide/index.html"> 
+<span class="menu-text">User Guide</span></a>
+  </li>  
+  <li class="nav-item">
     <a class="nav-link active" href="../reference/index.html" aria-current="page"> 
 <span class="menu-text">API Reference</span></a>
   </li>  
@@ -342,7 +346,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </div>
 <div class="doc-usage-source">
 <p>Usage</p>
-<p><a href="https://github.com/mikeckennedy/chameleon-flask/blob/main/chameleon_flask/engine.py#L185-L312" target="_blank" rel="noopener">Source</a></p>
+<p><a href="https://github.com/mikeckennedy/chameleon-flask/blob/main/chameleon_flask/engine.py#L276-L418" target="_blank" rel="noopener">Source</a></p>
 </div>
 <div class="doc-signature doc-Kind.FUNCTION">
 <div class="sourceCode" id="cb1"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="sig-name">template</span>(
@@ -354,8 +358,8 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <div class="doc-text">
 <p>This is the decorator the library is built around. The view underneath it returns a plain <code>dict</code>, and the decorator renders that dict through the template into a finished <code>flask.Response</code>. Return a Flask/Quart <code>Response</code> instead (a redirect, say) and it is passed through untouched; the template never runs. Anything else raises <a href="FlaskChameleonException.html#chameleon_flask.FlaskChameleonException" class="gdls-link gdls-code">FlaskChameleonException</a> naming the offending type.</p>
 <p>It works on sync and async views alike, bare (<code>@template</code>) or with arguments (<code>@template('home/index.pt')</code>). When used bare, the template file is derived from the view as <code>{module}/{function_name}.html</code>, falling back to <code>.pt</code> when no <code>.html</code> file exists in the template folder.</p>
-<p>Two things are decided once, when the view is decorated, not per request. The first is the template file name: when relying on the bare form, call <a href="global_init.html#chameleon_flask.global_init" class="gdls-link gdls-code">global_init()</a> before defining your views, otherwise the <code>.html</code>-or-<code>.pt</code> check assumes a folder named <code>templates</code> relative to the working directory. The second is whether the view is async. A sync decorator stacked between <code>@template</code> and an <code>async def</code> is handled as long as it uses <code>functools.wraps</code>; without it the view’s coroutine cannot be awaited and a clear error is raised, so place <code>@template</code> closest to the <code>async def</code> in that case.</p>
-<p>Put the route decorator outermost and <code>@template</code> directly above the function. The route must register the wrapper that produces a <code>Response</code>, not the raw view.</p>
+<p>Two things are decided once, when the view is decorated, not per request. The first is the template file name: when relying on the bare form, call <a href="global_init.html#chameleon_flask.global_init" class="gdls-link gdls-code">global_init()</a> before defining your views, otherwise the <code>.html</code>-or-<code>.pt</code> check assumes a folder named <code>templates</code> relative to the working directory. The second is whether the view is async. On Flask with Python 3.12 or newer, your own decorators may sit above or below <code>@template</code> in any order. On Quart, and on older Pythons, keep <code>@template</code> directly under the route decorator and put sync decorators beneath it using <code>functools.wraps</code> (which <code>@template</code> looks through), or make them async; otherwise the framework cannot see the coroutine function and a clear error is raised.</p>
+<p>Put the route decorator outermost and <code>@template</code> directly below it. The route must register the wrapper that produces a <code>Response</code>, not the raw view.</p>
 </div>
 <section id="parameters" class="level2 doc-parameters">
 <h2 class="doc-parameters">Parameters</h2>

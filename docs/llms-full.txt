@@ -83,12 +83,14 @@ Two things are decided once, when the view is decorated, not per request. The fi
 the template file name: when relying on the bare form, call `global_init()` before
 defining your views, otherwise the `.html`-or-`.pt` check assumes a folder named
 `templates` relative to the working directory. The second is whether the view is async.
-A sync decorator stacked between `@template` and an `async def` is handled as long as
-it uses `functools.wraps`; without it the view's coroutine cannot be awaited and a clear
-error is raised, so place `@template` closest to the `async def` in that case.
+On Flask with Python 3.12 or newer, your own decorators may sit above or below
+`@template` in any order. On Quart, and on older Pythons, keep `@template` directly
+under the route decorator and put sync decorators beneath it using `functools.wraps`
+(which `@template` looks through), or make them async; otherwise the framework cannot
+see the coroutine function and a clear error is raised.
 
-Put the route decorator outermost and `@template` directly above the function. The
-route must register the wrapper that produces a `Response`, not the raw view.
+Put the route decorator outermost and `@template` directly below it. The route must
+register the wrapper that produces a `Response`, not the raw view.
 
 Args:
     template_file: Optional, the Chameleon template file (path relative to the
@@ -237,3 +239,1075 @@ Args:
 Attributes:
     message: The message passed in, if any.
     template_file: The template the decorator will render for the 404 response.
+
+
+----------------------------------------------------------------------
+This is the User Guide documentation for the package.
+----------------------------------------------------------------------
+
+### User Guide
+
+A Flask view, at its best, is a short function that fetches some data and hands it to a template. Flask ships with Jinja for that job, and for most people Jinja is where the story ends. This library is for the people who have seen Chameleon and want it in their Flask or Quart app.
+
+Chameleon is the template language from the Pyramid and Zope world. Its templates are HTML documents first: the logic lives in `tal:` attributes on ordinary elements, values drop in through `${...}`, and the expression inside the braces is plain Python. There is no second syntax of `{% %}` blocks layered over the markup, so a `.pt` file opens in a browser and still looks like the page it will become. Chameleon compiles each template to Python bytecode the first time it renders, so none of that costs you speed.
+
+chameleon-flask is the glue. It adds one decorator that turns this:
+
+```python
+@app.get('/catalog/item/<int:item_id>')
+@chameleon_flask.template('catalog/item.pt')
+def item(item_id: int):
+    item = service.get_item_by_id(item_id)
+    if not item:
+        chameleon_flask.not_found()
+
+    return {'item': item}
+```
+
+into a finished `flask.Response`. The view returns a plain `dict`, the decorator pours it into the template, and when the lookup comes up empty one call swaps the page for your 404 template. Views return data; the decorator turns data into HTML. That split is the whole library, and this guide is the long version of it.
+
+## Where to go next
+
+- [Getting started](getting-started.qmd) takes an app from `pip install` to a rendered page in four moves: install, point the engine at a folder, write a template, decorate a view.
+- [Writing templates](writing-templates.qmd) is a Chameleon primer for people arriving from Jinja: interpolation, loops, conditions, attributes, METAL layouts, and the switch that lets Alpine.js and Vue attributes through.
+- [Decorating views](decorating-views.qmd) is the rulebook for `@template`: what a view may return, how bare `@template` finds its file, content types and status codes, and the one rule about decorator order.
+- [Friendly 404s and error pages](friendly-404s.qmd) covers `not_found()`, custom 404 templates, and rendering error pages from Flask's own error handlers.
+- [Async views, Flask, and Quart](async-flask-and-quart.qmd) explains how async views are detected, why decorator order no longer matters on Flask, the one rule that still applies on Quart, and when to turn `auto_reload` off.
+- [Testing](testing.qmd) shows that decorated views are plain functions, which makes them pleasant to test once you know about the one-shot engine.
+- [Troubleshooting](troubleshooting.qmd) is a field guide to every error the library, Chameleon, or Flask raises in normal use. Each heading is the message you will see.
+- [How it works](how-it-works.qmd) walks through the one module that does everything, for when you want to know rather than trust.
+- [FAQ](faq.qmd) has the short answers: Jinja side by side, partials, HTMX, FastAPI, and friends.
+- The [API reference](../reference/index.qmd) holds every public name with its full docstring.
+
+The [example app](https://github.com/mikeckennedy/chameleon-flask/tree/main/example) in the repository is small enough to read in one sitting and exercises everything in this guide: a sync view, an async view, an XML response with a `201` status, and a catalog where item `99` does not exist and shows the friendly 404. Run it with `python example/example_app.py` and visit http://127.0.0.1:5555.
+
+
+
+## Get started
+
+### Getting started
+
+This page takes a Flask app from nothing to a rendered Chameleon page in four moves. Everything here works the same on Quart; the differences, which are few, get their own page in [Async views, Flask, and Quart](async-flask-and-quart.qmd).
+
+## Move one: install
+
+```bash
+uv add chameleon-flask
+# or
+pip install chameleon_flask
+```
+
+Hyphen or underscore, PyPI accepts both spellings of the name. The import is always `chameleon_flask` with an underscore. Python 3.10 or newer is required, and the only runtime dependencies are `flask[async]` and `Chameleon`. The `[async]` extra pulls in the small `asgiref` package that lets Flask run `async def` views; you get it whether or not you ever write one.
+
+## Move two: point the engine at a folder
+
+Create a folder for your templates. Any layout works, but grouping templates by the view module that renders them pays off later, when you let the decorator derive template names on its own:
+
+```text
+my_app/
+├── app.py
+├── views/
+│   └── home.py
+└── templates/
+    ├── home/
+    │   └── index.pt
+    ├── errors/
+    │   └── 404.pt
+    └── shared/
+        └── layout.pt
+```
+
+At startup, tell the library where that folder is:
+
+```python
+# app.py
+from pathlib import Path
+
+import flask
+
+import chameleon_flask
+
+dev_mode = True
+
+app = flask.Flask(__name__)
+template_folder = str(Path(__file__).resolve().parent / 'templates')
+chameleon_flask.global_init(template_folder, auto_reload=dev_mode)
+```
+
+Build the path from `__file__` rather than a relative string, so the app works no matter which directory it was launched from. `global_init()` creates one Chameleon template loader for the whole process; every decorated view in the app uses it from then on.
+
+Two properties of this call matter from day one. It is one-shot: once it has succeeded, calling it again does nothing, so a stray second `global_init()` cannot swap your template folder out from under you. And it should run before you define your views. The bare form of the decorator, the one without a template path, works out its template file at the moment the view is decorated, and it needs to know the folder to do that. In practice: call `global_init()` in `app.py` before you import the modules that hold your views.
+
+`auto_reload` deserves its own sentence. With it on, Chameleon re-reads a template whenever its file changes, which is exactly what you want while editing templates and exactly what you don't want in production, where compiled templates should stay cached. Tie it to your dev-mode flag and forget about it.
+
+## Move three: write a template
+
+A Chameleon template is an HTML file. Here is the home page, with a loop and an expression:
+
+```html
+<!-- templates/home/index.pt -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>${title}</title>
+</head>
+<body>
+<h1>${title}</h1>
+<p>You have ${len(videos)} video(s).</p>
+<ul>
+    <li tal:repeat="video videos">${video.title} by ${video.author}</li>
+</ul>
+</body>
+</html>
+```
+
+Three things are going on, and they are most of Chameleon. `${title}` inserts a value from the model, HTML-escaped. `${len(videos)}` shows that the expression inside the braces is ordinary Python. And `tal:repeat="video videos"` repeats the `<li>` once per item, binding each to `video` for the element's contents. Strip the `tal:` attribute and the braces and you have exactly the HTML a designer would hand you, which is the point. [Writing templates](writing-templates.qmd) covers the rest of the language.
+
+The `.pt` extension is the Chameleon convention and the one this guide uses. Plain `.html` works too, and the bare decorator form described below checks for `.html` first.
+
+## Move four: decorate a view
+
+Decorate the view with the template path, relative to the folder from move two, and return a `dict`:
+
+```python
+# views/home.py
+import flask
+
+import chameleon_flask
+
+bp = flask.Blueprint('home', __name__)
+
+
+@bp.get('/')
+@chameleon_flask.template('home/index.pt')
+def index():
+    videos = video_service.latest(10)
+    return {'title': 'Latest videos', 'videos': videos}
+```
+
+Register the blueprint in `app.py`, after `global_init()`, and run the app. The keys of the returned dict are the names the template sees: `title` and `videos`, nothing more and nothing less. The decorator renders the template with that model and returns a `flask.Response` with a `200` status and a `text/html` content type.
+
+The decorator order matters in one respect: the route decorator goes outermost, `@chameleon_flask.template` directly under it. Flask registers whatever the route decorator receives, and that has to be the wrapper that produces a `Response`, not the raw view that returns a dict.
+
+## What you have now
+
+Four moves, and the app renders Chameleon. From here the paths fork. If the template language is new to you, read [Writing templates](writing-templates.qmd) next. If you know Chameleon from Pyramid and want the rules of the decorator, go to [Decorating views](decorating-views.qmd). And the [example app](https://github.com/mikeckennedy/chameleon-flask/tree/main/example) in the repository is these four moves plus a 404 page and an XML response, in two files you can run right now.
+
+
+### Writing templates
+
+If you arrive from Jinja, Chameleon will feel upside down for about an hour. Jinja puts its logic in the text, between `{% %}` and `{{ }}` markers, and the HTML flows around it. Chameleon puts its logic on the elements, as `tal:` attributes, and the HTML stays HTML. After the hour it feels inevitable: there is no element you can forget to close, because the template is a document, and the browser will tell you when it isn't.
+
+This page is the working subset. Every snippet on it was rendered with the Chameleon release the library installs, so the output shown is the output you get. The full language is documented at [chameleon.readthedocs.io](https://chameleon.readthedocs.io/).
+
+## Interpolation: `${...}`
+
+Values from the model drop in through `${...}`, and the expression inside is ordinary Python:
+
+```html
+<h1>Hello, ${user.name.title()}!</h1>
+<p>You have ${len(items)} item(s).</p>
+<p>${'Welcome back' if user else 'Please sign in'}</p>
+```
+
+Everything is HTML-escaped on the way in. A model value of `<b>bold</b>` renders as `&lt;b&gt;bold&lt;/b&gt;`, which is what you want for anything a user typed. When a value is already safe HTML, say a rendered Markdown document, prefix the expression with `structure:` to insert it verbatim:
+
+```html
+<div tal:content="structure: article_html">article goes here</div>
+```
+
+A name that is not in the model raises a `NameError` at render time, naming the missing variable. If a name is genuinely optional, give it a fallback with the `|` operator:
+
+```html
+<p>${subtitle | 'No subtitle'}</p>
+<p>${tracking_id | nothing}</p>
+```
+
+`nothing` is Chameleon's spelling of `None`; it renders as an empty string.
+
+## Loops: `tal:repeat`
+
+`tal:repeat="item items"` repeats the element it sits on once per item:
+
+```html
+<ul>
+    <li tal:repeat="item items">${item.name}</li>
+</ul>
+```
+
+Inside the loop a `repeat` object tracks where you are. `repeat.item.index` counts from zero, `repeat.item.number` from one, and `repeat.item.odd` and `repeat.item.even` are the booleans you reach for when striping rows:
+
+```html
+<tr tal:repeat="row rows" tal:attributes="class 'odd' if repeat.row.odd else 'even'">
+    <td>${repeat.row.number}</td>
+    <td>${row.title}</td>
+</tr>
+```
+
+An empty sequence renders nothing, not even the element, so an empty `<ul>` stays empty rather than holding a stray `<li>`.
+
+## Conditions: `tal:condition`
+
+The element, and everything inside it, is omitted when the expression is falsy:
+
+```html
+<div tal:condition="user">Signed in as ${user.name}</div>
+<div tal:condition="not user">Please sign in.</div>
+```
+
+There is no `else`; write the negated condition on a second element, as above. For several branches off one value, `tal:switch` on a parent and `tal:case` on the children:
+
+```html
+<div tal:switch="order.status">
+    <span tal:case="'paid'">Paid</span>
+    <span tal:case="'shipped'">On its way</span>
+    <span tal:case="default">Pending</span>
+</div>
+```
+
+## Content and replacement: `tal:content` and `tal:replace`
+
+`tal:content` replaces the element's contents and keeps the tag. `tal:replace` replaces the element itself:
+
+```html
+<span tal:content="message">placeholder shown when the file is opened directly</span>
+<span tal:replace="formatted_date">2024-01-01</span>
+```
+
+The placeholder text is the designer-friendly trick: open the `.pt` file in a browser and you see sample content; render it and the sample is replaced. Both escape their value unless you prefix it with `structure:`.
+
+## Attributes: `tal:attributes`
+
+Set one or more attributes from expressions, separated by semicolons:
+
+```html
+<a tal:attributes="href item.url; class item.css_class; title item.tooltip">${item.name}</a>
+```
+
+An expression that evaluates to `None` drops the attribute entirely, which is how you make `title` optional in the snippet above. Attribute values are escaped, like everything else.
+
+Inside attribute values you can also just interpolate, which is often shorter:
+
+```html
+<img src="/static/thumbs/${video.id}.jpg" alt="${video.title}">
+```
+
+## Variables and quiet elements: `tal:define` and `tal:omit-tag`
+
+`tal:define` binds a name for the element and its children:
+
+```html
+<div tal:define="total sum(line.price for line in order.lines)">
+    <p>Total: ${total}</p>
+</div>
+```
+
+`tal:omit-tag=""` renders an element's contents without the element, useful when you need somewhere to hang a `tal:repeat` or `tal:define` but want no wrapper in the output:
+
+```html
+<tal:block tal:repeat="section sections">  <!-- the tal: element is omitted too -->
+    <h2>${section.title}</h2>
+    <p>${section.body}</p>
+</tal:block>
+```
+
+The `<tal:block>` element is the idiomatic form: any element in the `tal:` namespace is omitted from the output automatically.
+
+## Comments
+
+An HTML comment stays in the output. Add a `!` and Chameleon strips it, so you can leave notes for the next developer that never reach the browser:
+
+```html
+<!-- this comment is sent to the browser -->
+<!--! this one is not -->
+```
+
+## Layouts: METAL macros and slots
+
+METAL is how Chameleon does template inheritance. A layout defines a macro with slots; a page uses the macro and fills the slots. The layout:
+
+```html
+<!-- templates/shared/layout.pt -->
+<!DOCTYPE html>
+<html metal:define-macro="layout" lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>${title}</title>
+    <link rel="stylesheet" href="/static/site.css">
+</head>
+<body>
+<nav>...</nav>
+<main metal:define-slot="content">Default content</main>
+<footer metal:define-slot="footer">&copy; Your site</footer>
+</body>
+</html>
+```
+
+And a page that uses it:
+
+```html
+<!-- templates/home/index.pt -->
+<div metal:use-macro="load: ../shared/layout.pt">
+    <div metal:fill-slot="content">
+        <h1>${title}</h1>
+        <ul>
+            <li tal:repeat="video videos">${video.title}</li>
+        </ul>
+    </div>
+</div>
+```
+
+The page fills `content` and leaves `footer` alone, so the footer's default appears. The outer `<div>` with `metal:use-macro` is replaced by the macro's output, so it never shows up in the page. One rule to internalize: the `load:` path is relative to the file that contains it, so from `templates/home/index.pt` the layout is `../shared/layout.pt`. That is the opposite convention from the `@template` decorator, whose paths are relative to the templates folder.
+
+The model is shared. `title` in the layout comes from the same dict the view returned, so a page that uses the layout must return every name the layout needs.
+
+## Alpine.js, Vue, and friends
+
+Chameleon is strict about attributes by default: anything that looks like a namespaced attribute outside its own `tal:`, `metal:`, and `i18n:` namespaces is rejected, and the rejection is a `KeyError` complaining about an undefined namespace prefix. That collides head-on with attribute-based JavaScript frameworks, whose whole idiom is shorthand like `@click`, `:class`, and `x-data`. Pass `restricted_namespace=False` to `global_init()` and Chameleon lets them through unchanged:
+
+```python
+chameleon_flask.global_init(template_folder, auto_reload=dev_mode, restricted_namespace=False)
+```
+
+```html
+<div x-data="{ open: false }">
+    <button @click="open = !open">Toggle</button>
+    <div :class="{ hidden: !open }">Content</div>
+</div>
+```
+
+Chameleon still owns the `${...}` syntax inside those attributes, so an Alpine expression that needs a literal `${` has to be written another way. In practice this almost never comes up.
+
+## File extensions
+
+`.pt` is the Chameleon convention and signals "this is a page template" in a folder listing. `.html` works just as well and keeps editors in HTML mode. The library treats them identically when you pass an explicit path; the bare decorator form checks for `.html` first and falls back to `.pt`, as [Decorating views](decorating-views.qmd) explains.
+
+
+
+## Using chameleon-flask
+
+### Decorating views
+
+`@template` is the decorator the library is built around, and it has a small number of rules. Most of them exist because someone, usually the author, got them wrong once. Here they are in the order you are likely to meet them.
+
+## Rule one: return a dict, or a Response, and nothing else
+
+A decorated view returns one of two things. A `dict` becomes the template's model, each key a name the template can use:
+
+```python
+@app.get('/')
+@chameleon_flask.template('home/index.pt')
+def index():
+    return {'title': 'Home', 'videos': video_service.latest(10)}
+```
+
+Or a Flask or Quart `Response`, which is passed straight through. The template never runs, and the response's status code and headers survive untouched. Redirects are the everyday case:
+
+```python
+@app.get('/account')
+@chameleon_flask.template('account/index.pt')
+def account():
+    user = current_user()
+    if not user:
+        return flask.redirect('/login')  # A Response: passed through, template never runs.
+
+    return {'user': user}
+```
+
+Anything else, a string, a tuple, a list, `None` from a forgotten `return`, raises a `FlaskChameleonException` that names the type you returned. The library is deliberately strict here. Flask would happily turn a string into a response, but a string from a `@template` view is almost always a mistake, and a clear error beats a page that says `{'title': 'Home'}`.
+
+Pass-through detection works on the `werkzeug` base class that `flask.Response`, `quart.Response`, and any subclass of either share, so your own `Response` subclasses pass through too.
+
+## Rule two: paths are relative to the templates folder
+
+The string you give the decorator is resolved against the folder passed to `global_init()`, never against the module that holds the view:
+
+```python
+@chameleon_flask.template('catalog/item.pt')   # -> templates/catalog/item.pt
+```
+
+Chameleon's own `load:` expressions, used for METAL layouts, are relative to the template file instead. Both conventions live in the same project, so it is worth saying out loud: the decorator thinks like the folder, `load:` thinks like a file.
+
+A path that does not exist is not caught when the view is decorated. It surfaces at the first request, as Chameleon's `ValueError: Template not found`. [Testing](testing.qmd) shows the three-line test that catches it before a user does.
+
+## Rule three: the bare form derives the name from the view
+
+If you name templates after the views that render them, you can stop naming them at all. Use the decorator bare, with or without parentheses, and the template file is derived from the view:
+
+```python
+# views/account.py
+@bp.get('/')
+@chameleon_flask.template
+def index():
+    return {'user': current_user()}     # renders templates/account/index.html, or .pt
+```
+
+The rule is `{last segment of the module name}/{function name}`, so a view named `index` in a module `my_app.views.account` maps to `account/index`. The library looks for `account/index.html` on disk first and falls back to `account/index.pt` if the `.html` file does not exist.
+
+The name is resolved once, at decoration time, when Python imports the module. That has one consequence: `global_init()` must have run before the module that holds the view is imported. If it has not, the decorator assumes a folder named `templates` relative to the working directory, which is the wrong folder for almost everyone. Call `global_init()` in your app module before you import your views, and the bare form never surprises you.
+
+## Rule four: content type and status code live on the decorator
+
+Templates are not only for HTML pages. The decorator takes the content type and the default status code, and the same machinery serves XML, text, or a `201 Created` after a POST:
+
+```python
+@app.get('/feed.xml')
+@chameleon_flask.template('feed/items.xml', content_type='application/xml')
+def feed():
+    return {'items': video_service.latest(50)}
+
+
+@app.post('/videos')
+@chameleon_flask.template('videos/created.pt', status_code=201)
+def create_video():
+    video = video_service.create(flask.request.form)
+    return {'video': video}
+```
+
+The keyword is `content_type`. An early release called it `mimetype`, and that spelling was removed in 0.0.4, so if an old snippet raises `TypeError: unexpected keyword argument 'mimetype'`, that is why.
+
+These two settings apply to the template path only. A `Response` you return yourself keeps its own values, and the 404 path described in [Friendly 404s and error pages](friendly-404s.qmd) always uses `text/html` and `404`.
+
+## Rule five: the route decorator goes outermost
+
+```python
+@app.get('/')                          # 1. outermost: registers the function with Flask
+@chameleon_flask.template('home/index.pt')   # 2. turns a dict into a Response
+def index():                           # 3. returns the dict
+    ...
+```
+
+Flask registers whatever the route decorator receives, and it has to receive the wrapper that produces a `Response`. Swap the two and Flask registers the raw view, gets a `dict` back, and renders it as JSON, because Flask treats a returned dict as a JSON response. That is a confusing afternoon.
+
+Your own decorators go between `@template` and the function, and for sync views any decorator works there. Async views have more history: on Flask with Python 3.12 or newer any arrangement works, while Quart and older Pythons need your sync decorators beneath `@template` and using `functools.wraps`. [Async views, Flask, and Quart](async-flask-and-quart.qmd) has the full table.
+
+## Blueprints
+
+Nothing changes. The engine is process-wide, so a blueprint's views decorate exactly like the app's own, and the bare form uses the blueprint module's name just as you would hope:
+
+```python
+# views/catalog.py
+bp = flask.Blueprint('catalog', __name__, url_prefix='/catalog')
+
+
+@bp.get('/item/<int:item_id>')
+@chameleon_flask.template            # -> templates/catalog/item.pt
+def item(item_id: int):
+    item = service.get_item_by_id(item_id)
+    if not item:
+        chameleon_flask.not_found()
+
+    return {'item': item}
+```
+
+Register the blueprint after `global_init()` has run, which in a normal app means `global_init()` sits above the blueprint imports in `app.py`.
+
+## Rendering without the decorator
+
+The decorator cannot reach everywhere. Flask's error handlers are registered directly, and sometimes you want the HTML as a string for an email body or a JSON payload. Two functions cover those cases.
+
+`chameleon_flask.response()` renders a template straight to a `flask.Response`, with the same `content_type` and `status_code` arguments as the decorator:
+
+```python
+@app.errorhandler(500)
+def server_error(e):
+    return chameleon_flask.response('errors/500.pt', status_code=500)
+```
+
+`chameleon_flask.engine.render()` is the bottom rung of the ladder: a model goes in, a string comes out:
+
+```python
+html = chameleon_flask.engine.render('email/welcome.pt', user=user)
+mailer.send(user.email, subject='Welcome', html=html)
+```
+
+It lives on the `engine` module rather than the package root because most apps never need it, but it is a public, documented function.
+
+## A layout for the templates folder
+
+The library has no opinion about folder structure, but the one the bare decorator rewards has held up well: one folder per view module, errors in their own folder, and the METAL layouts somewhere shared:
+
+```text
+templates/
+├── account/
+│   ├── index.pt
+│   └── settings.pt
+├── catalog/
+│   └── item.pt
+├── errors/
+│   ├── 404.pt
+│   └── 500.pt
+├── home/
+│   └── index.pt
+└── shared/
+    └── layout.pt
+```
+
+
+### Friendly 404s and error pages
+
+Every catalog has a missing item. Someone bookmarks a product that is later deleted, a crawler guesses an id, a user edits the URL by hand. The framework's answer is a bare page that says `Not Found` in a default font, and a thoughtful site does better: a page in the site's own look, with navigation and a way back. Somewhere in most views there is a lookup that can come up empty, and this page is about what to do at that point.
+
+## `not_found()`
+
+Call `chameleon_flask.not_found()` where the lookup fails and stop worrying about the rest of the function:
+
+```python
+@app.get('/catalog/item/<int:item_id>')
+@chameleon_flask.template('catalog/item.pt')
+def item(item_id: int):
+    item = service.get_item_by_id(item_id)
+    if not item:
+        chameleon_flask.not_found()
+
+    return {'item': item}
+```
+
+`not_found()` never returns. It raises `FlaskChameleonNotFoundException`, the `@template` decorator catches it on the way out, and the visitor gets `templates/errors/404.pt` rendered with status code `404`. The `return {'item': item}` line below the call is only reached when there is an item, which is why the function needs no `else`.
+
+Your type checker knows this too: `not_found()` is annotated `NoReturn`, so code after it inside the `if` is correctly flagged as unreachable.
+
+## The default 404 template
+
+Create `errors/404.pt` under your templates folder, and make it a real page. It renders with an empty model, so it cannot refer to `title` or `user` or anything else your other pages expect; a METAL layout that needs `title` would fail here. Either give the 404 page its own self-contained markup, or guard the names in the layout with fallbacks:
+
+```html
+<!-- templates/errors/404.pt -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>404 - Not Found</title>
+    <link rel="stylesheet" href="/static/site.css">
+</head>
+<body>
+<h1>404 - that page doesn't exist</h1>
+<p>Sorry, we couldn't find what you were looking for. <a href="/">Back home</a></p>
+</body>
+</html>
+```
+
+## A different template for one view
+
+Sometimes a section of the site deserves its own flavor of missing. Pass a template path to `not_found()`:
+
+```python
+if not video:
+    chameleon_flask.not_found('videos/not_found.pt')
+```
+
+The path is relative to the templates folder, like every path the decorator takes. An empty or blank string falls back to the default `errors/404.pt`.
+
+## What the 404 path ignores
+
+The 404 response always has content type `text/html` and status code `404`. The `content_type` and `status_code` you gave the decorator apply to the successful render only. That is deliberate: a view that serves `application/xml` with a `201` on success still owes a browser an HTML 404 page when the record is gone. If your API clients need a machine-readable 404 instead, return a `Response` from the view rather than calling `not_found()`.
+
+## 404s for URLs that never reach a view
+
+`not_found()` works inside decorated views. A request for a URL that matches no route never reaches a view, so Flask's own 404 handling takes over. Give that the same page with an error handler and `chameleon_flask.response()`:
+
+```python
+@app.errorhandler(404)
+def page_not_found(e):
+    return chameleon_flask.response('errors/404.pt', status_code=404)
+```
+
+Now unknown URLs and missing records look the same to the visitor, and the template is the single place to change the design.
+
+## 500s and other error handlers
+
+The same pattern serves any status code. `response()` takes the template, a content type, a status code, and the model as keyword arguments:
+
+```python
+@app.errorhandler(500)
+def server_error(e):
+    return chameleon_flask.response('errors/500.pt', status_code=500)
+```
+
+Keep the 500 template self-contained and free of anything that could itself fail, since it renders when something has already gone wrong.
+
+## When the decorator is not there to catch it
+
+`FlaskChameleonNotFoundException` is only caught by `@template`. Call `not_found()` from a helper that is used by both decorated and undecorated views, and in the undecorated one the exception escapes to Flask, which reports it as a 500. If you need that, catch it yourself:
+
+```python
+try:
+    model = build_model(item_id)
+except chameleon_flask.FlaskChameleonNotFoundException as nfe:
+    return chameleon_flask.response(nfe.template_file, status_code=404)
+```
+
+The exception carries the template file it wants rendered in `template_file`, and the message, if any, in `message`.
+
+
+### Async views, Flask, and Quart
+
+The decorator works on `async def` views without being told. It looks at the function at decoration time, and if the function is a coroutine function it installs an awaiting wrapper; otherwise it installs a plain one. Both wrappers share the same code for turning a dict into a response, so sync and async views cannot drift apart. From the outside there is nothing to configure:
+
+```python
+@app.get('/async')
+@chameleon_flask.template('async.pt')
+async def async_world():
+    await asyncio.sleep(0.01)
+    return {'message': "Let's go async Chameleon!"}
+```
+
+The interesting part is what happens when you stack your own decorators on an async view, because that is where web frameworks get picky.
+
+## Why decorator order used to matter
+
+Frameworks decide how to call a view by looking at the function they registered. Flask checks whether that function is a coroutine function; if it is, Flask awaits it, and if it is not, Flask calls it and expects a response back. Now stack a `login_required` decorator on an async view. `login_required` is almost always a plain `def` wrapper, so the function Flask registers is a plain function, even though the view underneath is async. Flask calls it, gets a coroutine object instead of a response, and fails with `TypeError: The view function did not return a valid response ... but it was a coroutine`.
+
+Through 0.6.2 the only cure was a rule: put `@template` directly under the route decorator and your sync decorators beneath it, using `functools.wraps`. The rule still produces the best-behaved code, and it is still required on Quart, but on Flask with Python 3.12 or newer it is no longer required.
+
+## Flask: any order works
+
+On Python 3.12 and newer, calling a decorated async view returns an object that awaits like the coroutine it wraps, so Flask, Quart, and `asyncio.run()` all treat it as one. The same object is also a WSGI callable. When a sync decorator outside `@template` hands it to Flask without awaiting it, Flask does what it does with any callable return value: it runs it as a WSGI application, and the view runs to completion through the same `asgiref` machinery Flask uses for its own async views. The result is that every arrangement below serves the page. Each row was verified against Flask with a test client:
+
+| Order, outermost first                          | `functools.wraps` | Flask, Python 3.12+ | Flask, Python 3.10 and 3.11                              | Quart                                                   |
+|-------------------------------------------------|-------------------|---------------------|----------------------------------------------------------|---------------------------------------------------------|
+| route, `@template`, view                        | n/a               | Works               | Works                                                    | Works                                                   |
+| route, `@template`, your sync decorator, view   | yes               | Works               | Works                                                    | Works                                                   |
+| route, `@template`, your sync decorator, view   | no                | Works               | `FlaskChameleonException`: returned an awaitable         | `FlaskChameleonException`: returned an awaitable        |
+| route, your sync decorator, `@template`, view   | either            | Works               | Flask `TypeError`: the view function did not return a valid response | Quart `TypeError`: the response value type is not valid |
+| route, your async decorator, `@template`, view  | either            | Works               | Works                                                    | Works                                                   |
+| route, `@template`, your async decorator, view  | either            | Works               | Works                                                    | Works                                                   |
+
+A decorator with an early return, such as `login_required` redirecting to the login page, works in every "Works" cell too. The redirect is a `Response`, and it passes straight through whichever path it takes.
+
+## Quart and older Pythons: the one rule
+
+On Quart, and on Flask under Python 3.10 or 3.11, the framework has to see a coroutine function to await the view, and a plain sync decorator stacked outside `@template` hides it. So keep `@template` directly under the route, and put your own sync decorators beneath it with `functools.wraps`:
+
+```python
+import functools
+
+import quart
+
+import chameleon_flask
+
+
+def login_required(f):
+    @functools.wraps(f)
+    def wrapper(*args, **kwargs):
+        if not current_user():
+            return quart.redirect('/login')
+        return f(*args, **kwargs)
+    return wrapper
+
+
+@app.get('/account/settings')
+@chameleon_flask.template('account/settings.pt')   # directly under the route
+@login_required                                     # sync, with functools.wraps
+async def settings():
+    return {'user': await load_user()}
+```
+
+`functools.wraps` records the wrapped function on the wrapper, and `@template` follows that chain to find the `async def` underneath, so it installs the awaiting wrapper and the framework sees a coroutine function. Without `wraps` the `async def` is invisible, the sync wrapper is installed, and when it discovers an awaitable where it expected a dict it closes the stray coroutine and raises a `FlaskChameleonException` that names this fix.
+
+## Or make the decorator async
+
+The other way out, on every framework and every Python, is a decorator that is itself async and awaits whatever it wraps:
+
+```python
+def login_required(f):
+    @functools.wraps(f)
+    async def wrapper(*args, **kwargs):
+        if not current_user():
+            return flask.redirect('/login')
+        result = f(*args, **kwargs)
+        return await result if inspect.isawaitable(result) else result
+    return wrapper
+```
+
+This is the shape to reach for when a decorator is shared between sync and async views, since the `isawaitable` check makes it indifferent to which kind it wraps, and it works in either position.
+
+## Flask needs the `async` extra
+
+Flask runs `async def` views through the `asgiref` package, and it refuses to register one without it: `RuntimeError: Install Flask with the 'async' extra in order to use async views.` This library depends on `flask[async]`, so a normal install already has it. If you see that error, Flask was installed another way, without the extra, and `pip install 'flask[async]'` fixes it.
+
+## Quart
+
+Quart is the async-first sibling of Flask, with the same API shape, and the decorator does not know or care which one it is running under:
+
+```python
+import quart
+
+import chameleon_flask
+
+app = quart.Quart(__name__)
+
+
+@app.get('/')
+@chameleon_flask.template('home/index.pt')
+async def index():
+    return {'videos': await video_service.latest(10)}
+```
+
+Return a dict for the template or a `quart.Response` to pass through, exactly as on Flask. The library recognizes Quart responses without importing Quart: `quart.Response` and `flask.Response` share a `werkzeug` base class, and the pass-through check is an `isinstance` against that base. Nothing Quart-specific ever has to be installed alongside this library.
+
+The decorator-order rule above does apply on Quart, because Quart awaits only what it recognizes as a coroutine function and does not run callables the way Flask does.
+
+## `auto_reload` in development and production
+
+`global_init(template_folder, auto_reload=True)` makes Chameleon check a template's modification time on each render and recompile when the file changed. That is what lets you edit a `.pt` file and refresh the browser. It costs a file stat per render, and in production it buys nothing, because the templates do not change until the next deploy. Tie it to your dev-mode flag so production renders from the compiled cache and never touches the disk:
+
+```python
+dev_mode = os.environ.get('APP_ENV', 'dev') == 'dev'
+chameleon_flask.global_init(template_folder, auto_reload=dev_mode)
+```
+
+Compiled templates are cached per process. A multi-worker server compiles each template once per worker, on its first render; the cost is small and paid once.
+
+
+### Testing
+
+Template-rendering code has a reputation for being hard to test, and it is mostly earned: a running app, a request context, a test client, and then string-matching on a page. Decorated views sidestep most of that. The decorator turns a function that returns a dict into a function that returns a `flask.Response`, and it builds that `Response` directly, with no app or request context required. You can call a decorated view from a test the way you would call any other function.
+
+There is one thing to know first, and it is the reason this page exists.
+
+## The one-shot engine, and the fixture that tames it
+
+`global_init()` keeps its state in module globals, and with the default `cache_init=True` a second call after a successful one does nothing. In production that is a feature. In a test suite it is a trap: the first folder anyone initializes wins for the rest of the session, and a test that initializes a different folder silently keeps rendering from the old one.
+
+The fix is a fixture that initializes the test folder and clears the engine on the way out, so the next test starts clean:
+
+```python
+# tests/conftest.py
+from pathlib import Path
+
+import pytest
+
+import chameleon_flask
+
+
+@pytest.fixture
+def test_templates_path(pytestconfig):
+    return Path(pytestconfig.rootdir, 'tests', 'templates')
+
+
+@pytest.fixture
+def setup_global_template(test_templates_path):
+    chameleon_flask.global_init(str(test_templates_path))
+    yield
+    chameleon_flask.engine.clear()
+```
+
+`engine.clear()` forgets the loader and the folder, so the next `global_init()` builds a fresh loader as if nothing had happened. Passing `cache_init=False` on every call works too, but the fixture keeps the knowledge in one place. This is the exact fixture the library's own suite uses.
+
+## Calling a view directly
+
+With the fixture in place, a rendering test is a handful of lines. Decorate a view inside the test, call it, and look at the `Response`:
+
+```python
+import flask
+
+import chameleon_flask
+
+
+def test_renders_model(setup_global_template):
+    @chameleon_flask.template('home/index.pt')
+    def view(name):
+        return {'name': name}
+
+    resp = view('Ada')
+    assert isinstance(resp, flask.Response)
+    assert resp.status_code == 200
+    assert '<h1>Hello, Ada!</h1>' in resp.get_data(as_text=True)
+```
+
+`get_data(as_text=True)` reads the body as a string, and it works on a `Response` built outside any request context. Views that take route parameters take them as ordinary arguments here, which is what makes this so pleasant: no URL building, no client, no context manager.
+
+Async views are one line longer:
+
+```python
+import asyncio
+
+
+def test_renders_async_model(setup_global_template):
+    @chameleon_flask.template('home/index.pt')
+    async def view(name):
+        return {'name': name}
+
+    resp = asyncio.run(view('Ada'))
+    assert resp.status_code == 200
+```
+
+## Testing the 404 path
+
+`not_found()` raises, the decorator catches, and the test sees a `404` with the 404 template's markup:
+
+```python
+def test_missing_item_renders_404(setup_global_template):
+    @chameleon_flask.template('home/index.pt')
+    def view(item_id):
+        if item_id > 10:
+            chameleon_flask.not_found()
+        return {'name': item_id}
+
+    resp = view(99)
+    assert resp.status_code == 404
+    assert 'This is a pretty 404 page.' in resp.get_data(as_text=True)
+```
+
+## Testing a template on its own
+
+When the logic worth testing is in the template, skip the view and render the template directly with `engine.render()`:
+
+```python
+def test_price_formatting(setup_global_template):
+    html = chameleon_flask.engine.render('catalog/item.pt', item=Item(name='Lamp', price=12.5))
+    assert 'Lamp' in html
+    assert '$12.50' in html
+```
+
+This is also the quickest way to catch a template path that does not exist. Chameleon raises `ValueError: Template not found` on the first render, not at decoration time, so a test that renders every page template once is a cheap guard against a renamed file.
+
+## Testing the error promises
+
+The library makes two promises about errors. `FlaskChameleonException` means the library was set up or used wrongly: no `global_init()`, a view returning the wrong type, a reserved model key. Everything Chameleon raises passes through untouched, so a missing template is Chameleon's `ValueError`, not a library error. Both are easy to pin:
+
+```python
+import pytest
+
+
+def test_requires_init():
+    chameleon_flask.engine.clear()
+
+    @chameleon_flask.template('home/index.pt')
+    def view():
+        return {}
+
+    with pytest.raises(chameleon_flask.FlaskChameleonException):
+        view()
+
+
+def test_missing_template(setup_global_template):
+    @chameleon_flask.template('home/missing.pt')
+    def view():
+        return {}
+
+    with pytest.raises(ValueError, match='Template not found'):
+        view()
+```
+
+The first test is the one place the fixture must be absent; it calls `clear()` itself to be sure.
+
+## The bare form and test module names
+
+The bare decorator derives the template path from the module and function names, and in a test the module is the test file. A bare `@template` on a view named `index` inside `tests/test_render.py` looks for `templates/test_render/index.html`, then `.pt`. The library's own suite has a `tests/templates/test_render/` folder for exactly this reason, and renaming the test file would break those tests. If that feels fragile, use the explicit form in tests and leave the bare form to the app.
+
+## Through the app, once
+
+Unit tests on views catch most things, but they will not catch a blueprint that was never registered or `global_init()` that runs after the views are imported. For that, one test through Flask's test client is worth a dozen mocks:
+
+```python
+def test_home_page_renders(client):
+    resp = client.get('/')
+    assert resp.status_code == 200
+    assert b'<h1>Latest videos</h1>' in resp.data
+```
+
+If that passes, the engine was initialized, the view was registered, the template was found, and the layout rendered. Nothing in the library needs mocking; initialize the real templates folder in your app factory exactly as production does.
+
+
+### Troubleshooting
+
+This is a field guide. Each heading is an error message, or the symptom you see when there is no message, so you can search this page for the text in your terminal. Under each one: what happened, why, and what to do about it.
+
+The first six come from chameleon-flask itself and arrive as `FlaskChameleonException`. They all mean the library was set up or called wrongly, and they are quick to fix. Everything after that comes from Chameleon, Flask, or Python and passes through unchanged, because the library deliberately never wraps another library's errors.
+
+## FlaskChameleonException: You must call global_init() before rendering templates.
+
+A view rendered before anyone told the library where the templates are. This is the classic first-request error in a new project. Move `global_init()` to app startup, before the first request is served. In a test, add a fixture that initializes the test template folder, as shown in [Testing](testing.qmd).
+
+## FlaskChameleonException: The template_folder must be specified.
+
+`global_init()` was called with an empty string or `None`, usually from a setting that was never filled in. Pass the path to the templates folder, and build it from `__file__` so the working directory cannot change the answer:
+
+```python
+template_folder = str(Path(__file__).resolve().parent / 'templates')
+```
+
+## FlaskChameleonException: The specified template folder must be a folder, it's not: ...
+
+The path exists in your head but not on disk, or it points at a file. Check the spelling and whether the path was meant to be absolute. The failed call did not initialize the engine, so once the path is right a plain retry works.
+
+## FlaskChameleonException: Invalid return type <class '...'>, we expected a dict or flask.Response as the return value.
+
+The view returned something other than a `dict` or a `Response`. The message names the type. The usual causes, in order:
+
+- A string. Wrap the values in a dict instead: `return {'message': text}`.
+- `None`, from a code path with no `return`, or from `return` on its own.
+- A tuple like `({'a': 1}, 201)`. Flask accepts that shape, this decorator does not; put the status code on the decorator with `status_code=201`.
+- A model object or a dataclass. Convert it: `return {'item': item}` or `return dataclasses.asdict(item)`.
+
+## FlaskChameleonException: The template model cannot contain the key 'encoding'
+
+The dict the view returned has a key named `encoding`. Chameleon reserves that name as an argument to its own render call, and the library passes `encoding='utf-8'` on every render, so the key can never reach the template. Rename it; `charset` or `text_encoding` both work. `translate` and `target_language` are Chameleon render options too, so avoid them as model keys as well.
+
+## FlaskChameleonException: The view ... returned an awaitable from a sync call path.
+
+An `async def` view is hidden behind a sync decorator that does not use `functools.wraps`, so `@template` could not see that the view was async and installed the sync wrapper. Inside a Flask request the library serves the view anyway, so you see this on Quart, or when calling the view directly in a test. The library closed the stray coroutine and raised this instead of letting the framework fail less clearly. Add `@functools.wraps(f)` to your decorator's wrapper and keep `@template` directly under the route decorator, or make your decorator async. [Async views, Flask, and Quart](async-flask-and-quart.qmd) has the full table of which orders work where.
+
+## TypeError: The view function did not return a valid response ... but it was a coroutine.
+
+This one is Flask's, and it only happens on Python 3.10 and 3.11. A sync decorator sits *outside* `@template` on an async view, so the function Flask registered is a plain function that returns a coroutine, and Flask does not await it. Move `@template` up so it is directly under the route decorator, with your own decorator beneath it, or make your decorator async. On Python 3.12 and newer the library hands Flask something it can run, and any order works.
+
+## TypeError: The response value type (coroutine) is not valid
+
+Quart's version of the previous entry. A sync decorator sits outside `@template` on an async view, so Quart ran it as a sync function and received an awaitable it does not know how to serve. Quart has no equivalent of Flask's callable-response path, so the fix is the rule: `@template` directly under the route decorator, your sync decorators beneath it with `functools.wraps`, or make your decorator async.
+
+## RuntimeError: Install Flask with the 'async' extra in order to use async views.
+
+Flask needs the `asgiref` package to run `async def` views and does not have it. This library depends on `flask[async]`, which includes it, so Flask was installed separately without the extra. Run `pip install 'flask[async]'`.
+
+## ValueError: Template not found: home/index.pt.
+
+Chameleon could not find the file under the templates folder. It is raised at the first render, not when the view is decorated. Work through these in order:
+
+- The path is relative to the folder passed to `global_init()`, not to the module holding the view and not to another template. From a view in `views/home.py`, the template is `home/index.pt`, not `index.pt` and not `templates/home/index.pt`.
+- The bare decorator derived a name you did not expect. It uses the last segment of the module name and the function name, so `my_app.views.home.index` looks for `home/index.html`, then `home/index.pt`. Print `chameleon_flask.engine.template_path` to confirm which folder it is searching.
+- The bare decorator ran before `global_init()`, and so assumed a folder named `templates` relative to the working directory. Move `global_init()` above the view imports.
+- The case does not match on Linux. `Index.pt` and `index.pt` are different files there, even though macOS and Windows would load either. This one tends to appear the first time the app runs in a container.
+- The folder is not the one you think, because an earlier `global_init()` pointed somewhere else and the second call was ignored. See the next heading.
+
+## A second global_init() is ignored, or templates come from the wrong folder
+
+With the default `cache_init=True`, `global_init()` does nothing once a previous call has succeeded. In an app that is the behaviour you want. In a test suite, or a process that must switch folders, call `chameleon_flask.engine.clear()` first or pass `cache_init=False`. [Testing](testing.qmd) has the fixture.
+
+## NameError: some_name
+
+Chameleon went looking for a name in the template's model and found nothing. The message names the variable, and Chameleon's traceback shows the template file and the line. Either add the key to the dict the view returns, or give the template a fallback: `${some_name | 'default'}`. On a 404 page, remember the model is empty, so a METAL layout that needs `title` will raise exactly this.
+
+## KeyError: 'Undefined namespace prefix: ...'
+
+A template uses an attribute Chameleon reads as namespaced, almost always Alpine.js or Vue shorthand like `@click`, `:class`, or `x-on:click`. Chameleon's restricted namespace mode rejects anything outside `tal:`, `metal:`, and `i18n:`. Pass `restricted_namespace=False` to `global_init()`, as described in [Writing templates](writing-templates.qmd#alpine.js-vue-and-friends).
+
+## TypeError: template() got an unexpected keyword argument 'mimetype'
+
+The keyword is `content_type`. An early release called it `mimetype`, and the rename in 0.0.4 was a breaking change. Update the decorator call.
+
+## The page shows JSON, or the raw dict
+
+The route decorator and `@template` are in the wrong order. Flask registered the raw view, received a dict, and turned it into a JSON response, which is what Flask does with dicts. Put the route decorator outermost and `@template` directly above the function.
+
+## Markup shows up as escaped text
+
+The page displays `&lt;div&gt;` and friends literally. The value was inserted with plain `${...}` or `tal:content`, which escape everything. For a value that is already safe HTML, use the `structure:` prefix: `<div tal:content="structure: html"></div>` or `${structure: html}`. Only do this for HTML you generated or sanitized yourself.
+
+## Edits to a template do not show up
+
+You changed the file, refreshed, and nothing happened. Chameleon compiled the template once and is serving the compiled version. Initialize with `auto_reload=True` during development so it checks the file's timestamp on each render. In production, leave it `False` and restart after deploying template changes.
+
+## The 404 page has the wrong content type or status
+
+The 404 path always renders with `text/html` and status `404`; the `content_type` and `status_code` on the decorator apply to the successful render only. If a client needs a different 404 shape, return a `Response` from the view instead of calling `not_found()`.
+
+## not_found() produced a 500 instead of a 404
+
+`not_found()` was called from a function that is not decorated with `@template`, so nothing caught the `FlaskChameleonNotFoundException` and Flask reported it as an unhandled error. Either decorate the view, or catch the exception yourself and render its `template_file` with `chameleon_flask.response()`, as [Friendly 404s and error pages](friendly-404s.qmd) shows.
+
+
+
+## Under the hood
+
+### How it works
+
+The whole library is one module, `chameleon_flask/engine.py`, and this page reads it top to bottom. Nothing here is required to use the library. It is for the moment you want to know rather than trust, and for the moment you are deciding whether a behaviour is a bug or a design.
+
+## One loader for the whole process
+
+`global_init()` creates a Chameleon `PageTemplateLoader` for the folder you give it and stores it in a module-level variable, along with the folder path. There is no app object to attach it to, and that is deliberate: the library never imports Quart, so it cannot know which framework's app it is serving, and a module global is the one place both frameworks can reach. The price is that the engine is process-wide. Two Flask apps in one process share a template folder. In practice nobody has two Flask apps in one process, and when they do they share templates anyway.
+
+The loader is where Chameleon's speed comes from. The first time a template is requested, Chameleon parses it, compiles it to a Python module, and caches the compiled module. Every later render runs compiled code. With `auto_reload=True` the loader also checks the file's modification time on each request and recompiles when it changed. `restricted_namespace` is passed straight through to the loader; it is Chameleon's switch, not this library's.
+
+`global_init()` is one-shot by default. If the loader already exists and `cache_init` is `True`, the call returns immediately. `clear()` sets both globals back to `None`, which is all it takes to start over.
+
+## The decorator does its thinking at decoration time
+
+`template()` is a decorator factory that also works bare, so the first thing it does is work out whether it was handed a template path, nothing, or the view function itself. Then, still at decoration time, it resolves the template file. An explicit path is used as given. For the bare form it takes the last dotted segment of `f.__module__`, the function's `__name__`, and checks whether `{module}/{name}.html` exists under the recorded template folder; if not, it uses `.pt`.
+
+This is why `global_init()` has to run first when you rely on the bare form. If no folder has been recorded, the decorator records `'templates'` as the folder so it has something to check against, and that is relative to the working directory. The check happens once, at import time, and is never revisited.
+
+Two small closures are defined next: `build_response`, which renders the resolved template with a model, and `not_found_response`, which renders the 404 template with an empty model, `text/html`, and status 404. Both wrappers below call these, so the sync and async paths cannot drift. They did once, in an early release where the async path dropped the status code, and the shared closures are the fix that stuck.
+
+## Two wrappers, one decision
+
+The decorator returns one of two wrappers. The sync wrapper calls the view, hands the result to `build_response`, and catches `FlaskChameleonNotFoundException` around both steps. The async wrapper does the same with an `await` in the middle: it calls the view, awaits the result if it is awaitable, and builds the response.
+
+Which wrapper you get is decided once, at decoration time, by `inspect.iscoroutinefunction`. The check runs on the function as given and, if that fails, on `inspect.unwrap(f)`, which follows the `__wrapped__` chain that `functools.wraps` leaves behind. So a sync decorator that uses `wraps`, sitting between `@template` and an `async def`, does not hide the coroutine function, and the async wrapper is installed.
+
+## The async wrapper is an object, not a function
+
+On Python 3.12 and newer the async wrapper is an instance of a small class rather than an `async def`, and the reason is Flask. Flask only awaits a view it recognizes as a coroutine function, and a sync decorator stacked outside `@template` is a plain function, so Flask calls it synchronously and gets back whatever `@template` returns. If that were a coroutine, Flask would reject it.
+
+So two things are arranged. The wrapper class is marked with `inspect.markcoroutinefunction`, so Flask and Quart detect it as async and await what it returns, exactly as they would an `async def`. The mark sits on the class, not the instance, so `functools.wraps` in an outer decorator does not copy it onto that decorator's plain wrapper, which may return a redirect without awaiting anything and must stay a sync function in the framework's eyes. And calling the wrapper returns a pending-response object that implements the full coroutine protocol, so `await`, `asyncio.run()`, and `create_task()` all accept it, and that is also a WSGI callable. When Flask receives it unawaited from a sync decorator, Flask runs it as a WSGI application, the object runs the view to completion through `asgiref` (the same mechanism Flask uses for its own async views), and serves the resulting response. Quart has no callable-response path, so on Quart the ordering rule still applies.
+
+Python 3.10 and 3.11 cannot mark a plain callable as a coroutine function, so there the async wrapper is an ordinary `async def` and Flask behaves like Quart. The sync wrapper has a matching guard. If the view returned an awaitable, detection failed, almost always a decorator without `wraps`. Inside a Flask request the wrapper hands back the same pending-response object for Flask to run. Anywhere else it closes the stray coroutine, which avoids the "coroutine was never awaited" warning, and raises a `FlaskChameleonException` that explains the fix.
+
+## Dict in, Response out
+
+`__render_response` is where the return value is interpreted. If it is a `Response`, it is returned as is. If the template path is set and the value is not a `dict`, it raises the "Invalid return type" error. Otherwise the dict is splatted into `render()`.
+
+`render()` looks the template up in the loader, which is the moment Chameleon raises `ValueError: Template not found` for a bad path, and calls Chameleon's `render(encoding='utf-8', **model)`. Before it does, it refuses a model containing the key `encoding`, since that would collide with the argument it is about to pass; without the guard you would get a `TypeError` from deep inside Chameleon. With `encoding` set, Chameleon returns a `str`, and `response()` wraps that string in a `flask.Response` with the content type and status code you chose.
+
+## Recognizing a Response without importing Quart
+
+The pass-through check is `isinstance(value, werkzeug.sansio.response.Response)`. That class is the base of `flask.Response`, of `quart.Response`, of bare werkzeug responses, and of any subclass you define, so one check covers every framework the library supports without importing any of them. A small set of class-name strings remains as a fallback for response implementations that predate the shared base; it is kept for compatibility and does no harm.
+
+## Exceptions as control flow
+
+`not_found()` raises `FlaskChameleonNotFoundException`, a subclass of `FlaskChameleonException`, carrying the template to render. The wrappers catch it and call `not_found_response`. It is control flow wearing an exception's clothing, and that is the only way to abort a view from several frames down without threading a sentinel return value through every helper. The base class, `FlaskChameleonException`, is what every deliberate error in the library raises, so one `except` clause can catch "the library was misused" without catching Chameleon's or Flask's own errors, which pass through untouched.
+
+## What is exported, and what is not
+
+The package root exports `template`, `global_init`, `not_found`, `response`, and the two exceptions. `render` and `clear` live on `chameleon_flask.engine` and are left out of `__all__` on purpose: `render` because most apps never need a raw string, `clear` because its only real audience is test suites. Both are public and documented in the [API reference](../reference/index.qmd); they are just one import deeper.
+
+
+## Can I use Chameleon and Jinja in the same app?
+
+Yes. This library never touches Flask's own template machinery. `flask.render_template()` keeps rendering Jinja from Flask's `templates` folder, and `@chameleon_flask.template` renders Chameleon from the folder you gave `global_init()`. Point them at different folders, or at the same one with different file extensions, and migrate one view at a time.
+
+## How do I do partials or reusable fragments?
+
+Chameleon's METAL macros handle layouts well and small reusable pieces less well. The sibling library [chameleon_partials](https://github.com/mikeckennedy/chameleon_partials) adds a `render_partial` function that a template calls to drop in a fragment with its own model, and it works alongside this library: register it at startup, and add `render_partial` to the dicts your views return, or wrap them with its `extend_model` helper.
+
+## How do I return an HTMX fragment?
+
+A fragment is just a template without a layout. Decorate the view with the fragment's path and return the model, exactly like a page:
+
+```python
+@app.get('/videos/<int:video_id>/card')
+@chameleon_flask.template('videos/partials/card.pt')
+def video_card(video_id: int):
+    return {'video': video_service.get(video_id)}
+```
+
+The response is the rendered fragment with `text/html`, which is what HTMX wants to swap in.
+
+## Does it work with FastAPI?
+
+No, and it is not meant to. This library grew out of a fork of [fastapi-chameleon](https://github.com/mikeckennedy/fastapi-chameleon), which is the one to use with FastAPI. The two share the same shape, so moving between them is mostly a matter of imports.
+
+## Does it work with blueprints and app factories?
+
+Yes. The engine is process-wide, so blueprints need nothing extra. In an app factory, call `global_init()` inside the factory before importing and registering the blueprints whose views use the bare `@template` form; its one-shot behaviour means calling the factory twice in tests is harmless, as long as the folder is the same.
+
+## What about internationalization?
+
+Chameleon has i18n support through its `i18n:` attributes, and `translate` and `target_language` are arguments to its render call. This library passes the model straight through to that call, so avoid those two names as model keys. Beyond that it takes no position on i18n; configure Chameleon's translation as its documentation describes.
+
+## Is it fast?
+
+Chameleon compiles templates to Python bytecode and caches the result, and it is among the faster template engines for Python. This library adds a dict splat and a `Response` construction per request. With `auto_reload=False` in production there is no file access per render at all.
+
+## Where is the version?
+
+`chameleon_flask.__version__` reads it from the installed package metadata. The changelog is on the [Changelog](../changelog.qmd) page, generated from the GitHub releases.
+
+## Why `.pt`?
+
+It stands for page template, the name of the language Chameleon implements, and it is the convention in the Pyramid and Zope world Chameleon comes from. Use `.html` if you prefer; the library does not care.
+

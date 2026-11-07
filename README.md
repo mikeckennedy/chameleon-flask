@@ -8,6 +8,15 @@ Adds integration of the Chameleon template language to Flask and Quart.
 
 📖 **Documentation**: [mkennedy.codes/docs/chameleon-flask](https://mkennedy.codes/docs/chameleon-flask/)
 
+This README is the short version. The user guide tells the whole story:
+
+- [Getting started](https://mkennedy.codes/docs/chameleon-flask/user-guide/getting-started.html): install, point the engine at a folder, write a template, decorate a view.
+- [Writing templates](https://mkennedy.codes/docs/chameleon-flask/user-guide/writing-templates.html): a Chameleon primer for people arriving from Jinja, METAL layouts included.
+- [Decorating views](https://mkennedy.codes/docs/chameleon-flask/user-guide/decorating-views.html): the rulebook for `@template`, from return types to decorator order.
+- [Friendly 404s and error pages](https://mkennedy.codes/docs/chameleon-flask/user-guide/friendly-404s.html) and [Async views, Flask, and Quart](https://mkennedy.codes/docs/chameleon-flask/user-guide/async-flask-and-quart.html), with the table of which decorator orders work on async views.
+- [Testing](https://mkennedy.codes/docs/chameleon-flask/user-guide/testing.html), [Troubleshooting](https://mkennedy.codes/docs/chameleon-flask/user-guide/troubleshooting.html), [How it works](https://mkennedy.codes/docs/chameleon-flask/user-guide/how-it-works.html), and the [FAQ](https://mkennedy.codes/docs/chameleon-flask/user-guide/faq.html).
+- [API reference](https://mkennedy.codes/docs/chameleon-flask/reference/).
+
 ## The whole library in one view
 
 Here is a complete chameleon-flask view, the kind you will write dozens of:
@@ -241,10 +250,10 @@ A few things are worth knowing before they find you:
 - **Names are resolved at decoration time.** The bare `@template` form looks up its template
   file when your module is imported. If `global_init()` hasn't run yet, it assumes a folder
   named `templates` relative to the working directory.
-- **An async view behind another decorator.** If you stack your own sync decorator between
-  `@template` and an `async def`, make it use `functools.wraps`; the library looks through
-  `wraps` chains to find the coroutine function. Without it, you get a clear error telling
-  you to move `@template` next to the `async def`, rather than a silently un-awaited coroutine.
+- **An async view behind another decorator.** On Flask with Python 3.12 or newer, stack your
+  decorators in any order; the library hands Flask something it can run either way. On Quart,
+  and on older Pythons, keep `@template` directly under the route and put your sync decorators
+  beneath it with `functools.wraps`, or make them async.
 - **`encoding` is a reserved key.** Chameleon takes it as a render argument, so a model
   containing `encoding` is rejected with a clear `FlaskChameleonException` instead of a
   confusing traceback. Rename the key.

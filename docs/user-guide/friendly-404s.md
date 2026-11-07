@@ -1,0 +1,101 @@
+# Friendly 404s and error pages
+
+Every catalog has a missing item. Someone bookmarks a product that is later deleted, a crawler guesses an id, a user edits the URL by hand. The framework's answer is a bare page that says `Not Found` in a default font, and a thoughtful site does better: a page in the site's own look, with navigation and a way back. Somewhere in most views there is a lookup that can come up empty, and this page is about what to do at that point.
+
+
+# [not_found()](../reference/not_found.md#chameleon_flask.not_found)
+
+Call [chameleon_flask.not_found()](../reference/not_found.md#chameleon_flask.not_found) where the lookup fails and stop worrying about the rest of the function:
+
+``` python
+@app.get('/catalog/item/<int:item_id>')
+@chameleon_flask.template('catalog/item.pt')
+def item(item_id: int):
+    item = service.get_item_by_id(item_id)
+    if not item:
+        chameleon_flask.not_found()
+
+    return {'item': item}
+```
+
+[not_found()](../reference/not_found.md#chameleon_flask.not_found) never returns. It raises [FlaskChameleonNotFoundException](../reference/FlaskChameleonNotFoundException.md#chameleon_flask.FlaskChameleonNotFoundException), the `@template` decorator catches it on the way out, and the visitor gets `templates/errors/404.pt` rendered with status code `404`. The `return {'item': item}` line below the call is only reached when there is an item, which is why the function needs no `else`.
+
+Your type checker knows this too: [not_found()](../reference/not_found.md#chameleon_flask.not_found) is annotated `NoReturn`, so code after it inside the `if` is correctly flagged as unreachable.
+
+
+# The default 404 template
+
+Create `errors/404.pt` under your templates folder, and make it a real page. It renders with an empty model, so it cannot refer to `title` or `user` or anything else your other pages expect; a METAL layout that needs `title` would fail here. Either give the 404 page its own self-contained markup, or guard the names in the layout with fallbacks:
+
+``` html
+<!-- templates/errors/404.pt -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>404 - Not Found</title>
+    <link rel="stylesheet" href="/static/site.css">
+</head>
+<body>
+<h1>404 - that page doesn't exist</h1>
+<p>Sorry, we couldn't find what you were looking for. [Back home](/)</p>
+</body>
+</html>
+```
+
+
+# A different template for one view
+
+Sometimes a section of the site deserves its own flavor of missing. Pass a template path to [not_found()](../reference/not_found.md#chameleon_flask.not_found):
+
+``` python
+if not video:
+    chameleon_flask.not_found('videos/not_found.pt')
+```
+
+The path is relative to the templates folder, like every path the decorator takes. An empty or blank string falls back to the default `errors/404.pt`.
+
+
+# What the 404 path ignores
+
+The 404 response always has content type `text/html` and status code `404`. The `content_type` and `status_code` you gave the decorator apply to the successful render only. That is deliberate: a view that serves `application/xml` with a `201` on success still owes a browser an HTML 404 page when the record is gone. If your API clients need a machine-readable 404 instead, return a `Response` from the view rather than calling [not_found()](../reference/not_found.md#chameleon_flask.not_found).
+
+
+# 404s for URLs that never reach a view
+
+[not_found()](../reference/not_found.md#chameleon_flask.not_found) works inside decorated views. A request for a URL that matches no route never reaches a view, so Flask's own 404 handling takes over. Give that the same page with an error handler and [chameleon_flask.response()](../reference/response.md#chameleon_flask.response):
+
+``` python
+@app.errorhandler(404)
+def page_not_found(e):
+    return chameleon_flask.response('errors/404.pt', status_code=404)
+```
+
+Now unknown URLs and missing records look the same to the visitor, and the template is the single place to change the design.
+
+
+# 500s and other error handlers
+
+The same pattern serves any status code. [response()](../reference/response.md#chameleon_flask.response) takes the template, a content type, a status code, and the model as keyword arguments:
+
+``` python
+@app.errorhandler(500)
+def server_error(e):
+    return chameleon_flask.response('errors/500.pt', status_code=500)
+```
+
+Keep the 500 template self-contained and free of anything that could itself fail, since it renders when something has already gone wrong.
+
+
+# When the decorator is not there to catch it
+
+[FlaskChameleonNotFoundException](../reference/FlaskChameleonNotFoundException.md#chameleon_flask.FlaskChameleonNotFoundException) is only caught by `@template`. Call [not_found()](../reference/not_found.md#chameleon_flask.not_found) from a helper that is used by both decorated and undecorated views, and in the undecorated one the exception escapes to Flask, which reports it as a 500. If you need that, catch it yourself:
+
+``` python
+try:
+    model = build_model(item_id)
+except chameleon_flask.FlaskChameleonNotFoundException as nfe:
+    return chameleon_flask.response(nfe.template_file, status_code=404)
+```
+
+The exception carries the template file it wants rendered in `template_file`, and the message, if any, in `message`.

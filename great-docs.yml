@@ -69,6 +69,11 @@ skill:
     - need: "Use Alpine.js/Vue shorthand attributes in templates"
       use: "global_init(..., restricted_namespace=False)"
 
+# The user guide is auto-discovered from user_guide/ at the repo root: index.qmd first, then
+# the other pages by numeric prefix, which is stripped from the published URL
+# (01-getting-started.qmd -> user-guide/getting-started.html). Sidebar groups come from each
+# page's `guide-section` frontmatter.
+
 authors:
   - name: Michael Kennedy
     role: Author

@@ -1,0 +1,55 @@
+---
+title: "How it works"
+description: "A tour of the one module that does everything: the process-wide template loader, decoration-time name resolution, the sync and async wrappers, response pass-through detection, and the exceptions used as control flow."
+guide-section: "Under the hood"
+---
+
+The whole library is one module, `chameleon_flask/engine.py`, and this page reads it top to bottom. Nothing here is required to use the library. It is for the moment you want to know rather than trust, and for the moment you are deciding whether a behaviour is a bug or a design.
+
+## One loader for the whole process
+
+`global_init()` creates a Chameleon `PageTemplateLoader` for the folder you give it and stores it in a module-level variable, along with the folder path. There is no app object to attach it to, and that is deliberate: the library never imports Quart, so it cannot know which framework's app it is serving, and a module global is the one place both frameworks can reach. The price is that the engine is process-wide. Two Flask apps in one process share a template folder. In practice nobody has two Flask apps in one process, and when they do they share templates anyway.
+
+The loader is where Chameleon's speed comes from. The first time a template is requested, Chameleon parses it, compiles it to a Python module, and caches the compiled module. Every later render runs compiled code. With `auto_reload=True` the loader also checks the file's modification time on each request and recompiles when it changed. `restricted_namespace` is passed straight through to the loader; it is Chameleon's switch, not this library's.
+
+`global_init()` is one-shot by default. If the loader already exists and `cache_init` is `True`, the call returns immediately. `clear()` sets both globals back to `None`, which is all it takes to start over.
+
+## The decorator does its thinking at decoration time
+
+`template()` is a decorator factory that also works bare, so the first thing it does is work out whether it was handed a template path, nothing, or the view function itself. Then, still at decoration time, it resolves the template file. An explicit path is used as given. For the bare form it takes the last dotted segment of `f.__module__`, the function's `__name__`, and checks whether `{module}/{name}.html` exists under the recorded template folder; if not, it uses `.pt`.
+
+This is why `global_init()` has to run first when you rely on the bare form. If no folder has been recorded, the decorator records `'templates'` as the folder so it has something to check against, and that is relative to the working directory. The check happens once, at import time, and is never revisited.
+
+Two small closures are defined next: `build_response`, which renders the resolved template with a model, and `not_found_response`, which renders the 404 template with an empty model, `text/html`, and status 404. Both wrappers below call these, so the sync and async paths cannot drift. They did once, in an early release where the async path dropped the status code, and the shared closures are the fix that stuck.
+
+## Two wrappers, one decision
+
+The decorator returns one of two wrappers. The sync wrapper calls the view, hands the result to `build_response`, and catches `FlaskChameleonNotFoundException` around both steps. The async wrapper does the same with an `await` in the middle: it calls the view, awaits the result if it is awaitable, and builds the response.
+
+Which wrapper you get is decided once, at decoration time, by `inspect.iscoroutinefunction`. The check runs on the function as given and, if that fails, on `inspect.unwrap(f)`, which follows the `__wrapped__` chain that `functools.wraps` leaves behind. So a sync decorator that uses `wraps`, sitting between `@template` and an `async def`, does not hide the coroutine function, and the async wrapper is installed.
+
+## The async wrapper is an object, not a function
+
+On Python 3.12 and newer the async wrapper is an instance of a small class rather than an `async def`, and the reason is Flask. Flask only awaits a view it recognizes as a coroutine function, and a sync decorator stacked outside `@template` is a plain function, so Flask calls it synchronously and gets back whatever `@template` returns. If that were a coroutine, Flask would reject it.
+
+So two things are arranged. The wrapper class is marked with `inspect.markcoroutinefunction`, so Flask and Quart detect it as async and await what it returns, exactly as they would an `async def`. The mark sits on the class, not the instance, so `functools.wraps` in an outer decorator does not copy it onto that decorator's plain wrapper, which may return a redirect without awaiting anything and must stay a sync function in the framework's eyes. And calling the wrapper returns a pending-response object that implements the full coroutine protocol, so `await`, `asyncio.run()`, and `create_task()` all accept it, and that is also a WSGI callable. When Flask receives it unawaited from a sync decorator, Flask runs it as a WSGI application, the object runs the view to completion through `asgiref` (the same mechanism Flask uses for its own async views), and serves the resulting response. Quart has no callable-response path, so on Quart the ordering rule still applies.
+
+Python 3.10 and 3.11 cannot mark a plain callable as a coroutine function, so there the async wrapper is an ordinary `async def` and Flask behaves like Quart. The sync wrapper has a matching guard. If the view returned an awaitable, detection failed, almost always a decorator without `wraps`. Inside a Flask request the wrapper hands back the same pending-response object for Flask to run. Anywhere else it closes the stray coroutine, which avoids the "coroutine was never awaited" warning, and raises a `FlaskChameleonException` that explains the fix.
+
+## Dict in, Response out
+
+`__render_response` is where the return value is interpreted. If it is a `Response`, it is returned as is. If the template path is set and the value is not a `dict`, it raises the "Invalid return type" error. Otherwise the dict is splatted into `render()`.
+
+`render()` looks the template up in the loader, which is the moment Chameleon raises `ValueError: Template not found` for a bad path, and calls Chameleon's `render(encoding='utf-8', **model)`. Before it does, it refuses a model containing the key `encoding`, since that would collide with the argument it is about to pass; without the guard you would get a `TypeError` from deep inside Chameleon. With `encoding` set, Chameleon returns a `str`, and `response()` wraps that string in a `flask.Response` with the content type and status code you chose.
+
+## Recognizing a Response without importing Quart
+
+The pass-through check is `isinstance(value, werkzeug.sansio.response.Response)`. That class is the base of `flask.Response`, of `quart.Response`, of bare werkzeug responses, and of any subclass you define, so one check covers every framework the library supports without importing any of them. A small set of class-name strings remains as a fallback for response implementations that predate the shared base; it is kept for compatibility and does no harm.
+
+## Exceptions as control flow
+
+`not_found()` raises `FlaskChameleonNotFoundException`, a subclass of `FlaskChameleonException`, carrying the template to render. The wrappers catch it and call `not_found_response`. It is control flow wearing an exception's clothing, and that is the only way to abort a view from several frames down without threading a sentinel return value through every helper. The base class, `FlaskChameleonException`, is what every deliberate error in the library raises, so one `except` clause can catch "the library was misused" without catching Chameleon's or Flask's own errors, which pass through untouched.
+
+## What is exported, and what is not
+
+The package root exports `template`, `global_init`, `not_found`, `response`, and the two exceptions. `render` and `clear` live on `chameleon_flask.engine` and are left out of `__all__` on purpose: `render` because most apps never need a raw string, `clear` because its only real audience is test suites. Both are public and documented in the [API reference](../reference/index.qmd); they are just one import deeper.

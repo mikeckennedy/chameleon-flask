@@ -168,3 +168,5 @@ cython_debug/
 docs/build-timings.json
 .DS_Store
 /temp/
+# Local note for an upstream Great Docs bug report (see the file); not project docs.
+/great-docs-anchor-quirk.md

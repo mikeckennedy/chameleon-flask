@@ -162,6 +162,10 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
           <div class="collapse navbar-collapse" id="navbarCollapse">
             <ul class="navbar-nav navbar-nav-scroll me-auto">
   <li class="nav-item">
+    <a class="nav-link" href="./user-guide/index.html"> 
+<span class="menu-text">User Guide</span></a>
+  </li>  
+  <li class="nav-item">
     <a class="nav-link" href="./reference/index.html"> 
 <span class="menu-text">API Reference</span></a>
   </li>  
@@ -240,6 +244,15 @@ section.level2:first-of-type > h2:first-child,
 <p><a href="https://pypi.org/project/chameleon-flask/"><img src="https://img.shields.io/pypi/v/chameleon-flask.svg" class="img-fluid" alt="PyPI version"></a> <a href="https://pypi.org/project/chameleon-flask/"><img src="https://img.shields.io/pypi/pyversions/chameleon-flask.svg" class="img-fluid" alt="Python versions"></a> <a href="https://github.com/mikeckennedy/chameleon-flask/blob/main/LICENSE"><img src="https://img.shields.io/github/license/mikeckennedy/chameleon-flask.svg" class="img-fluid" alt="License"></a></p>
 <p>Adds integration of the Chameleon template language to Flask and Quart.</p>
 <p>📖 <strong>Documentation</strong>: <a href="https://mkennedy.codes/docs/chameleon-flask/">mkennedy.codes/docs/chameleon-flask</a></p>
+<p>This README is the short version. The user guide tells the whole story:</p>
+<ul>
+<li><a href="https://mkennedy.codes/docs/chameleon-flask/user-guide/getting-started.html">Getting started</a>: install, point the engine at a folder, write a template, decorate a view.</li>
+<li><a href="https://mkennedy.codes/docs/chameleon-flask/user-guide/writing-templates.html">Writing templates</a>: a Chameleon primer for people arriving from Jinja, METAL layouts included.</li>
+<li><a href="https://mkennedy.codes/docs/chameleon-flask/user-guide/decorating-views.html">Decorating views</a>: the rulebook for <code>@template</code>, from return types to decorator order.</li>
+<li><a href="https://mkennedy.codes/docs/chameleon-flask/user-guide/friendly-404s.html">Friendly 404s and error pages</a> and <a href="https://mkennedy.codes/docs/chameleon-flask/user-guide/async-flask-and-quart.html">Async views, Flask, and Quart</a>, with the table of which decorator orders work on async views.</li>
+<li><a href="https://mkennedy.codes/docs/chameleon-flask/user-guide/testing.html">Testing</a>, <a href="https://mkennedy.codes/docs/chameleon-flask/user-guide/troubleshooting.html">Troubleshooting</a>, <a href="https://mkennedy.codes/docs/chameleon-flask/user-guide/how-it-works.html">How it works</a>, and the <a href="https://mkennedy.codes/docs/chameleon-flask/user-guide/faq.html">FAQ</a>.</li>
+<li><a href="https://mkennedy.codes/docs/chameleon-flask/reference/">API reference</a>.</li>
+</ul>
 <section id="the-whole-library-in-one-view" class="level2">
 <h2 class="anchored" data-anchor-id="the-whole-library-in-one-view">The whole library in one view</h2>
 <p>Here is a complete chameleon-flask view, the kind you will write dozens of:</p>
@@ -372,7 +385,7 @@ section.level2:first-of-type > h2:first-child,
 <ul>
 <li><strong>Decorator order matters.</strong> Put the route decorator outermost and <code>@template</code> directly above the function. The route has to register the wrapper that produces a <code>Response</code>, not the raw view that returns a dict.</li>
 <li><strong>Names are resolved at decoration time.</strong> The bare <code>@template</code> form looks up its template file when your module is imported. If <a href="reference/global_init.html#chameleon_flask.global_init" class="gdls-link gdls-code">global_init()</a> hasn’t run yet, it assumes a folder named <code>templates</code> relative to the working directory.</li>
-<li><strong>An async view behind another decorator.</strong> If you stack your own sync decorator between <code>@template</code> and an <code>async def</code>, make it use <code>functools.wraps</code>; the library looks through <code>wraps</code> chains to find the coroutine function. Without it, you get a clear error telling you to move <code>@template</code> next to the <code>async def</code>, rather than a silently un-awaited coroutine.</li>
+<li><strong>An async view behind another decorator.</strong> On Flask with Python 3.12 or newer, stack your decorators in any order; the library hands Flask something it can run either way. On Quart, and on older Pythons, keep <code>@template</code> directly under the route and put your sync decorators beneath it with <code>functools.wraps</code>, or make them async.</li>
 <li><strong><code>encoding</code> is a reserved key.</strong> Chameleon takes it as a render argument, so a model containing <code>encoding</code> is rejected with a clear <a href="reference/FlaskChameleonException.html#chameleon_flask.FlaskChameleonException" class="gdls-link gdls-code">FlaskChameleonException</a> instead of a confusing traceback. Rename the key.</li>
 <li><strong>It’s <code>content_type</code>, not <code>mimetype</code>.</strong> The decorator keyword was renamed in an earlier release.</li>
 </ul>

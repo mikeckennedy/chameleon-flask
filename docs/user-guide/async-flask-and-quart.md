@@ -1,0 +1,125 @@
+# Async views, Flask, and Quart
+
+The decorator works on `async def` views without being told. It looks at the function at decoration time, and if the function is a coroutine function it installs an awaiting wrapper; otherwise it installs a plain one. Both wrappers share the same code for turning a dict into a response, so sync and async views cannot drift apart. From the outside there is nothing to configure:
+
+``` python
+@app.get('/async')
+@chameleon_flask.template('async.pt')
+async def async_world():
+    await asyncio.sleep(0.01)
+    return {'message': "Let's go async Chameleon!"}
+```
+
+The interesting part is what happens when you stack your own decorators on an async view, because that is where web frameworks get picky.
+
+
+# Why decorator order used to matter
+
+Frameworks decide how to call a view by looking at the function they registered. Flask checks whether that function is a coroutine function; if it is, Flask awaits it, and if it is not, Flask calls it and expects a response back. Now stack a `login_required` decorator on an async view. `login_required` is almost always a plain `def` wrapper, so the function Flask registers is a plain function, even though the view underneath is async. Flask calls it, gets a coroutine object instead of a response, and fails with `TypeError: The view function did not return a valid response ... but it was a coroutine`.
+
+Through 0.6.2 the only cure was a rule: put `@template` directly under the route decorator and your sync decorators beneath it, using `functools.wraps`. The rule still produces the best-behaved code, and it is still required on Quart, but on Flask with Python 3.12 or newer it is no longer required.
+
+
+# Flask: any order works
+
+On Python 3.12 and newer, calling a decorated async view returns an object that awaits like the coroutine it wraps, so Flask, Quart, and `asyncio.run()` all treat it as one. The same object is also a WSGI callable. When a sync decorator outside `@template` hands it to Flask without awaiting it, Flask does what it does with any callable return value: it runs it as a WSGI application, and the view runs to completion through the same `asgiref` machinery Flask uses for its own async views. The result is that every arrangement below serves the page. Each row was verified against Flask with a test client:
+
+| Order, outermost first | `functools.wraps` | Flask, Python 3.12+ | Flask, Python 3.10 and 3.11 | Quart |
+|----|----|----|----|----|
+| route, `@template`, view | n/a | Works | Works | Works |
+| route, `@template`, your sync decorator, view | yes | Works | Works | Works |
+| route, `@template`, your sync decorator, view | no | Works | [FlaskChameleonException](../reference/FlaskChameleonException.md#chameleon_flask.FlaskChameleonException): returned an awaitable | [FlaskChameleonException](../reference/FlaskChameleonException.md#chameleon_flask.FlaskChameleonException): returned an awaitable |
+| route, your sync decorator, `@template`, view | either | Works | Flask `TypeError`: the view function did not return a valid response | Quart `TypeError`: the response value type is not valid |
+| route, your async decorator, `@template`, view | either | Works | Works | Works |
+| route, `@template`, your async decorator, view | either | Works | Works | Works |
+
+A decorator with an early return, such as `login_required` redirecting to the login page, works in every "Works" cell too. The redirect is a `Response`, and it passes straight through whichever path it takes.
+
+
+# Quart and older Pythons: the one rule
+
+On Quart, and on Flask under Python 3.10 or 3.11, the framework has to see a coroutine function to await the view, and a plain sync decorator stacked outside `@template` hides it. So keep `@template` directly under the route, and put your own sync decorators beneath it with `functools.wraps`:
+
+``` python
+import functools
+
+import quart
+
+import chameleon_flask
+
+
+def login_required(f):
+    @functools.wraps(f)
+    def wrapper(*args, **kwargs):
+        if not current_user():
+            return quart.redirect('/login')
+        return f(*args, **kwargs)
+    return wrapper
+
+
+@app.get('/account/settings')
+@chameleon_flask.template('account/settings.pt')   # directly under the route
+@login_required                                     # sync, with functools.wraps
+async def settings():
+    return {'user': await load_user()}
+```
+
+`functools.wraps` records the wrapped function on the wrapper, and `@template` follows that chain to find the `async def` underneath, so it installs the awaiting wrapper and the framework sees a coroutine function. Without `wraps` the `async def` is invisible, the sync wrapper is installed, and when it discovers an awaitable where it expected a dict it closes the stray coroutine and raises a [FlaskChameleonException](../reference/FlaskChameleonException.md#chameleon_flask.FlaskChameleonException) that names this fix.
+
+
+# Or make the decorator async
+
+The other way out, on every framework and every Python, is a decorator that is itself async and awaits whatever it wraps:
+
+``` python
+def login_required(f):
+    @functools.wraps(f)
+    async def wrapper(*args, **kwargs):
+        if not current_user():
+            return flask.redirect('/login')
+        result = f(*args, **kwargs)
+        return await result if inspect.isawaitable(result) else result
+    return wrapper
+```
+
+This is the shape to reach for when a decorator is shared between sync and async views, since the `isawaitable` check makes it indifferent to which kind it wraps, and it works in either position.
+
+
+# Flask needs the `async` extra
+
+Flask runs `async def` views through the `asgiref` package, and it refuses to register one without it: `RuntimeError: Install Flask with the 'async' extra in order to use async views.` This library depends on `flask[async]`, so a normal install already has it. If you see that error, Flask was installed another way, without the extra, and `pip install 'flask[async]'` fixes it.
+
+
+# Quart
+
+Quart is the async-first sibling of Flask, with the same API shape, and the decorator does not know or care which one it is running under:
+
+``` python
+import quart
+
+import chameleon_flask
+
+app = quart.Quart(__name__)
+
+
+@app.get('/')
+@chameleon_flask.template('home/index.pt')
+async def index():
+    return {'videos': await video_service.latest(10)}
+```
+
+Return a dict for the template or a `quart.Response` to pass through, exactly as on Flask. The library recognizes Quart responses without importing Quart: `quart.Response` and `flask.Response` share a `werkzeug` base class, and the pass-through check is an `isinstance` against that base. Nothing Quart-specific ever has to be installed alongside this library.
+
+The decorator-order rule above does apply on Quart, because Quart awaits only what it recognizes as a coroutine function and does not run callables the way Flask does.
+
+
+# `auto_reload` in development and production
+
+`global_init(template_folder, auto_reload=True)` makes Chameleon check a template's modification time on each render and recompile when the file changed. That is what lets you edit a `.pt` file and refresh the browser. It costs a file stat per render, and in production it buys nothing, because the templates do not change until the next deploy. Tie it to your dev-mode flag so production renders from the compiled cache and never touches the disk:
+
+``` python
+dev_mode = os.environ.get('APP_ENV', 'dev') == 'dev'
+chameleon_flask.global_init(template_folder, auto_reload=dev_mode)
+```
+
+Compiled templates are cached per process. A multi-worker server compiles each template once per worker, on its first render; the cost is small and paid once.

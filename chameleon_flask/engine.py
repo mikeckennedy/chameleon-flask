@@ -9,10 +9,13 @@ response back. `not_found()` is the escape hatch that swaps the page for a frien
 Initialize the engine once at app startup with `global_init()`; the rest builds on that loader.
 """
 
+import asyncio
 import inspect
 import os
-from collections.abc import Callable
-from functools import wraps
+import sys
+import types
+from collections.abc import Awaitable, Callable
+from functools import update_wrapper, wraps
 from typing import Any, NoReturn, cast
 
 import flask
@@ -32,6 +35,94 @@ response_classes = {
     "<class 'quart.response.Response'>",
     "<class 'quart.Response'>",
 }
+
+
+def _running_loop() -> asyncio.AbstractEventLoop | None:
+    try:
+        return asyncio.get_running_loop()
+    except RuntimeError:
+        return None
+
+
+async def _await(awaitable: Awaitable[flask.Response]) -> flask.Response:
+    return await awaitable
+
+
+def _run_to_completion(awaitable: Awaitable[flask.Response]) -> flask.Response:
+    # The same mechanism Flask uses to run its own async views from a WSGI worker.
+    from asgiref.sync import async_to_sync  # Installed by flask[async], the library's declared dependency.
+
+    return async_to_sync(_await)(awaitable)
+
+
+class _PendingResponse:
+    """
+    The awaitable an async view hands back, which Flask can also run on its own.
+
+    Normally whoever receives this awaits it: Flask through asgiref, Quart directly, or a test
+    through `asyncio.run()`. It implements the full coroutine protocol so all of those accept it
+    exactly like the coroutine it wraps.
+
+    When a sync decorator is stacked *outside* `@template`, Flask calls that decorator as a
+    plain function and receives this object as the view's return value without awaiting it.
+    Flask treats a callable return value as a WSGI application, so `__call__` runs the view
+    to completion and serves the resulting response. That is what makes decorator order
+    irrelevant on Flask.
+    """
+
+    __slots__ = ('_coro',)
+
+    def __init__(self, coro: Awaitable[flask.Response]):
+        self._coro = coro
+
+    def __await__(self):
+        return self._coro.__await__()
+
+    def send(self, value):
+        return self._coro.send(value)  # type: ignore[attr-defined]
+
+    def throw(self, *args):
+        return self._coro.throw(*args)  # type: ignore[attr-defined]
+
+    def close(self) -> None:
+        self._coro.close()  # type: ignore[attr-defined]
+
+    def __call__(self, environ, start_response):
+        response = _run_to_completion(self._coro)
+        return response(environ, start_response)
+
+
+class _AsyncView:
+    """
+    The callable `@template` installs on an async view (Python 3.12 and newer).
+
+    It is marked as a coroutine function, so Flask and Quart detect the async view exactly as
+    they would an `async def` and await what it returns. Calling it returns a
+    `_PendingResponse`, which awaits like a coroutine but can also be served by Flask directly
+    when a sync decorator outside `@template` returns it without awaiting.
+
+    The coroutine mark lives on the class, not the instance, so `functools.wraps` in an outer
+    decorator does not copy it onto that decorator's plain wrapper (which may return a redirect
+    without awaiting anything, and must stay a sync function in Flask's eyes).
+    """
+
+    def __init__(self, view: Callable[..., Any], run: Callable[..., Awaitable[flask.Response]]):
+        self._run = run
+        update_wrapper(self, view)
+
+    def __call__(self, *args: Any, **kwargs: Any) -> _PendingResponse:
+        return _PendingResponse(self._run(*args, **kwargs))
+
+    def __get__(self, obj: Any, objtype: type | None = None) -> Any:
+        # Bind like a function does, so @template works on async methods of class-based views.
+        return self if obj is None else types.MethodType(self, obj)
+
+    def __repr__(self) -> str:
+        return f'<chameleon_flask async view {getattr(self, "__qualname__", "?")}>'
+
+
+if sys.version_info >= (3, 12):
+    inspect.markcoroutinefunction(_AsyncView)
 
 
 def global_init(
@@ -203,12 +294,14 @@ def template(
     the template file name: when relying on the bare form, call `global_init()` before
     defining your views, otherwise the `.html`-or-`.pt` check assumes a folder named
     `templates` relative to the working directory. The second is whether the view is async.
-    A sync decorator stacked between `@template` and an `async def` is handled as long as
-    it uses `functools.wraps`; without it the view's coroutine cannot be awaited and a clear
-    error is raised, so place `@template` closest to the `async def` in that case.
+    On Flask with Python 3.12 or newer, your own decorators may sit above or below
+    `@template` in any order. On Quart, and on older Pythons, keep `@template` directly
+    under the route decorator and put sync decorators beneath it using `functools.wraps`
+    (which `@template` looks through), or make them async; otherwise the framework cannot
+    see the coroutine function and a clear error is raised.
 
-    Put the route decorator outermost and `@template` directly above the function. The
-    route must register the wrapper that produces a `Response`, not the raw view.
+    Put the route decorator outermost and `@template` directly below it. The route must
+    register the wrapper that produces a `Response`, not the raw view.
 
     Args:
         template_file: Optional, the Chameleon template file (path relative to the
@@ -270,20 +363,32 @@ def template(
         def not_found_response(nfe: FlaskChameleonNotFoundException) -> flask.Response:
             return __render_response(nfe.template_file, {}, 'text/html', 404)
 
+        async def finish(awaitable: Awaitable[Any]) -> flask.Response:
+            try:
+                return build_response(await awaitable)
+            except FlaskChameleonNotFoundException as nfe:
+                return not_found_response(nfe)
+
         @wraps(f)
-        def sync_view_method(*args, **kwargs) -> flask.Response:
+        def sync_view_method(*args, **kwargs) -> Any:
             try:
                 result = f(*args, **kwargs)
             except FlaskChameleonNotFoundException as nfe:
                 return not_found_response(nfe)
 
             if inspect.isawaitable(result):
+                # An async view hid behind a sync decorator without functools.wraps, so it could
+                # not be detected at decoration time. Inside a Flask request there is no event
+                # loop and Flask will not await anything, but it will serve a callable, so hand
+                # back a pending response it can run. Anywhere else, explain the fix.
+                if _running_loop() is None and flask.has_request_context():
+                    return _PendingResponse(finish(result))
                 if inspect.iscoroutine(result):
                     result.close()  # Avoid the "coroutine was never awaited" warning.
                 msg = (
-                    f'The view {f.__qualname__} returned an awaitable from a sync call path. Place @template '
-                    'directly on the async def, or make the outer decorator use functools.wraps so the '
-                    'async view can be detected.'
+                    f'The view {f.__qualname__} returned an awaitable from a sync call path. Give the decorator '
+                    'between @template and the async def functools.wraps so the async view can be detected, '
+                    'or make that decorator async.'
                 )
                 raise FlaskChameleonException(msg)
 
@@ -292,8 +397,7 @@ def template(
             except FlaskChameleonNotFoundException as nfe:
                 return not_found_response(nfe)
 
-        @wraps(f)
-        async def async_view_method(*args, **kwargs) -> flask.Response:
+        async def run_async_view(*args, **kwargs) -> flask.Response:
             try:
                 result = f(*args, **kwargs)
                 if inspect.isawaitable(result):
@@ -302,10 +406,12 @@ def template(
             except FlaskChameleonNotFoundException as nfe:
                 return not_found_response(nfe)
 
-        # Also look through functools.wraps chains so a sync decorator stacked on top of an
-        # async def still gets the awaiting wrapper (and Flask/Quart see a coroutine function).
+        # Also look through functools.wraps chains so a sync decorator stacked between @template
+        # and an async def still gets the awaiting wrapper (and Flask/Quart see a coroutine function).
         if inspect.iscoroutinefunction(f) or inspect.iscoroutinefunction(inspect.unwrap(f)):
-            return async_view_method
+            if sys.version_info >= (3, 12):
+                return _AsyncView(f, run_async_view)
+            return wraps(f)(run_async_view)  # Older Pythons cannot mark a plain callable as async.
         else:
             return sync_view_method
 

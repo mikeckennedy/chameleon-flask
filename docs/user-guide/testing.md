@@ -1,0 +1,156 @@
+# Testing
+
+Template-rendering code has a reputation for being hard to test, and it is mostly earned: a running app, a request context, a test client, and then string-matching on a page. Decorated views sidestep most of that. The decorator turns a function that returns a dict into a function that returns a `flask.Response`, and it builds that `Response` directly, with no app or request context required. You can call a decorated view from a test the way you would call any other function.
+
+There is one thing to know first, and it is the reason this page exists.
+
+
+# The one-shot engine, and the fixture that tames it
+
+[global_init()](../reference/global_init.md#chameleon_flask.global_init) keeps its state in module globals, and with the default `cache_init=True` a second call after a successful one does nothing. In production that is a feature. In a test suite it is a trap: the first folder anyone initializes wins for the rest of the session, and a test that initializes a different folder silently keeps rendering from the old one.
+
+The fix is a fixture that initializes the test folder and clears the engine on the way out, so the next test starts clean:
+
+``` python
+# tests/conftest.py
+from pathlib import Path
+
+import pytest
+
+import chameleon_flask
+
+
+@pytest.fixture
+def test_templates_path(pytestconfig):
+    return Path(pytestconfig.rootdir, 'tests', 'templates')
+
+
+@pytest.fixture
+def setup_global_template(test_templates_path):
+    chameleon_flask.global_init(str(test_templates_path))
+    yield
+    chameleon_flask.engine.clear()
+```
+
+[engine.clear()](../reference/engine.clear.md#chameleon_flask.engine.clear) forgets the loader and the folder, so the next [global_init()](../reference/global_init.md#chameleon_flask.global_init) builds a fresh loader as if nothing had happened. Passing `cache_init=False` on every call works too, but the fixture keeps the knowledge in one place. This is the exact fixture the library's own suite uses.
+
+
+# Calling a view directly
+
+With the fixture in place, a rendering test is a handful of lines. Decorate a view inside the test, call it, and look at the `Response`:
+
+``` python
+import flask
+
+import chameleon_flask
+
+
+def test_renders_model(setup_global_template):
+    @chameleon_flask.template('home/index.pt')
+    def view(name):
+        return {'name': name}
+
+    resp = view('Ada')
+    assert isinstance(resp, flask.Response)
+    assert resp.status_code == 200
+    assert '<h1>Hello, Ada!</h1>' in resp.get_data(as_text=True)
+```
+
+`get_data(as_text=True)` reads the body as a string, and it works on a `Response` built outside any request context. Views that take route parameters take them as ordinary arguments here, which is what makes this so pleasant: no URL building, no client, no context manager.
+
+Async views are one line longer:
+
+``` python
+import asyncio
+
+
+def test_renders_async_model(setup_global_template):
+    @chameleon_flask.template('home/index.pt')
+    async def view(name):
+        return {'name': name}
+
+    resp = asyncio.run(view('Ada'))
+    assert resp.status_code == 200
+```
+
+
+# Testing the 404 path
+
+[not_found()](../reference/not_found.md#chameleon_flask.not_found) raises, the decorator catches, and the test sees a `404` with the 404 template's markup:
+
+``` python
+def test_missing_item_renders_404(setup_global_template):
+    @chameleon_flask.template('home/index.pt')
+    def view(item_id):
+        if item_id > 10:
+            chameleon_flask.not_found()
+        return {'name': item_id}
+
+    resp = view(99)
+    assert resp.status_code == 404
+    assert 'This is a pretty 404 page.' in resp.get_data(as_text=True)
+```
+
+
+# Testing a template on its own
+
+When the logic worth testing is in the template, skip the view and render the template directly with [engine.render()](../reference/engine.render.md#chameleon_flask.engine.render):
+
+``` python
+def test_price_formatting(setup_global_template):
+    html = chameleon_flask.engine.render('catalog/item.pt', item=Item(name='Lamp', price=12.5))
+    assert 'Lamp' in html
+    assert '$12.50' in html
+```
+
+This is also the quickest way to catch a template path that does not exist. Chameleon raises `ValueError: Template not found` on the first render, not at decoration time, so a test that renders every page template once is a cheap guard against a renamed file.
+
+
+# Testing the error promises
+
+The library makes two promises about errors. [FlaskChameleonException](../reference/FlaskChameleonException.md#chameleon_flask.FlaskChameleonException) means the library was set up or used wrongly: no [global_init()](../reference/global_init.md#chameleon_flask.global_init), a view returning the wrong type, a reserved model key. Everything Chameleon raises passes through untouched, so a missing template is Chameleon's `ValueError`, not a library error. Both are easy to pin:
+
+``` python
+import pytest
+
+
+def test_requires_init():
+    chameleon_flask.engine.clear()
+
+    @chameleon_flask.template('home/index.pt')
+    def view():
+        return {}
+
+    with pytest.raises(chameleon_flask.FlaskChameleonException):
+        view()
+
+
+def test_missing_template(setup_global_template):
+    @chameleon_flask.template('home/missing.pt')
+    def view():
+        return {}
+
+    with pytest.raises(ValueError, match='Template not found'):
+        view()
+```
+
+The first test is the one place the fixture must be absent; it calls [clear()](../reference/engine.clear.md#chameleon_flask.engine.clear) itself to be sure.
+
+
+# The bare form and test module names
+
+The bare decorator derives the template path from the module and function names, and in a test the module is the test file. A bare `@template` on a view named `index` inside `tests/test_render.py` looks for `templates/test_render/index.html`, then `.pt`. The library's own suite has a `tests/templates/test_render/` folder for exactly this reason, and renaming the test file would break those tests. If that feels fragile, use the explicit form in tests and leave the bare form to the app.
+
+
+# Through the app, once
+
+Unit tests on views catch most things, but they will not catch a blueprint that was never registered or [global_init()](../reference/global_init.md#chameleon_flask.global_init) that runs after the views are imported. For that, one test through Flask's test client is worth a dozen mocks:
+
+``` python
+def test_home_page_renders(client):
+    resp = client.get('/')
+    assert resp.status_code == 200
+    assert b'<h1>Latest videos</h1>' in resp.data
+```
+
+If that passes, the engine was initialized, the view was registered, the template was found, and the layout rendered. Nothing in the library needs mocking; initialize the real templates folder in your app factory exactly as production does.

@@ -1,0 +1,50 @@
+---
+title: "FAQ"
+description: "Short answers to the questions that come up most: Chameleon alongside Jinja, partials, HTMX fragments, FastAPI, i18n, performance, and where the version lives."
+guide-section: "Under the hood"
+---
+
+## Can I use Chameleon and Jinja in the same app?
+
+Yes. This library never touches Flask's own template machinery. `flask.render_template()` keeps rendering Jinja from Flask's `templates` folder, and `@chameleon_flask.template` renders Chameleon from the folder you gave `global_init()`. Point them at different folders, or at the same one with different file extensions, and migrate one view at a time.
+
+## How do I do partials or reusable fragments?
+
+Chameleon's METAL macros handle layouts well and small reusable pieces less well. The sibling library [chameleon_partials](https://github.com/mikeckennedy/chameleon_partials) adds a `render_partial` function that a template calls to drop in a fragment with its own model, and it works alongside this library: register it at startup, and add `render_partial` to the dicts your views return, or wrap them with its `extend_model` helper.
+
+## How do I return an HTMX fragment?
+
+A fragment is just a template without a layout. Decorate the view with the fragment's path and return the model, exactly like a page:
+
+```python
+@app.get('/videos/<int:video_id>/card')
+@chameleon_flask.template('videos/partials/card.pt')
+def video_card(video_id: int):
+    return {'video': video_service.get(video_id)}
+```
+
+The response is the rendered fragment with `text/html`, which is what HTMX wants to swap in.
+
+## Does it work with FastAPI?
+
+No, and it is not meant to. This library grew out of a fork of [fastapi-chameleon](https://github.com/mikeckennedy/fastapi-chameleon), which is the one to use with FastAPI. The two share the same shape, so moving between them is mostly a matter of imports.
+
+## Does it work with blueprints and app factories?
+
+Yes. The engine is process-wide, so blueprints need nothing extra. In an app factory, call `global_init()` inside the factory before importing and registering the blueprints whose views use the bare `@template` form; its one-shot behaviour means calling the factory twice in tests is harmless, as long as the folder is the same.
+
+## What about internationalization?
+
+Chameleon has i18n support through its `i18n:` attributes, and `translate` and `target_language` are arguments to its render call. This library passes the model straight through to that call, so avoid those two names as model keys. Beyond that it takes no position on i18n; configure Chameleon's translation as its documentation describes.
+
+## Is it fast?
+
+Chameleon compiles templates to Python bytecode and caches the result, and it is among the faster template engines for Python. This library adds a dict splat and a `Response` construction per request. With `auto_reload=False` in production there is no file access per render at all.
+
+## Where is the version?
+
+`chameleon_flask.__version__` reads it from the installed package metadata. The changelog is on the [Changelog](../changelog.qmd) page, generated from the GitHub releases.
+
+## Why `.pt`?
+
+It stands for page template, the name of the language Chameleon implements, and it is the convention in the Pyramid and Zope world Chameleon comes from. Use `.html` if you prefer; the library does not care.

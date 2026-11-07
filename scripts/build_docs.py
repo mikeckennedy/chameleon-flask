@@ -17,6 +17,20 @@ REPO_ROOT = _SCRIPTS.parent  # pyproject.toml + great-docs.yml live here
 SITE = REPO_ROOT / 'great-docs' / '_site'
 DEST = REPO_ROOT / 'docs'
 
+# Files that must exist in every build. Great Docs reports success even when it silently
+# skips some of them (for example llms-full.txt when it cannot import the package), and the
+# user guide only appears when great-docs finds user_guide/ at the repo root.
+REQUIRED_OUTPUTS = (
+    'llms.txt',
+    'llms-full.txt',
+    'skill.md',
+    '.well-known/agent-skills/index.json',
+    'user-guide/index.html',
+    'user-guide/getting-started.html',
+    'user-guide/troubleshooting.html',
+)
+USER_GUIDE_MARKER = 'This is the User Guide documentation for the package.'
+
 
 def main() -> int:
     great_docs = Path(sys.executable).with_name('great-docs')
@@ -26,6 +40,14 @@ def main() -> int:
 
     if not SITE.is_dir():
         print(f'Build output missing: {SITE}', file=sys.stderr)
+        return 1
+
+    missing = [name for name in REQUIRED_OUTPUTS if not (SITE / name).is_file()]
+    if missing:
+        print(f'Build output incomplete, missing: {", ".join(missing)}', file=sys.stderr)
+        return 1
+    if USER_GUIDE_MARKER not in (SITE / 'llms-full.txt').read_text(encoding='utf-8'):
+        print(f'llms-full.txt has no user guide section ({USER_GUIDE_MARKER!r} missing)', file=sys.stderr)
         return 1
 
     if DEST.exists():

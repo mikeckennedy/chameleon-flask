@@ -1,0 +1,191 @@
+---
+title: "Writing templates"
+description: "A Chameleon primer for Flask developers: interpolation and escaping, loops, conditions, attributes, variables, METAL layouts, and letting Alpine.js or Vue attributes through."
+guide-section: "Get started"
+---
+
+If you arrive from Jinja, Chameleon will feel upside down for about an hour. Jinja puts its logic in the text, between `{% %}` and `{{ }}` markers, and the HTML flows around it. Chameleon puts its logic on the elements, as `tal:` attributes, and the HTML stays HTML. After the hour it feels inevitable: there is no element you can forget to close, because the template is a document, and the browser will tell you when it isn't.
+
+This page is the working subset. Every snippet on it was rendered with the Chameleon release the library installs, so the output shown is the output you get. The full language is documented at [chameleon.readthedocs.io](https://chameleon.readthedocs.io/).
+
+## Interpolation: `${...}`
+
+Values from the model drop in through `${...}`, and the expression inside is ordinary Python:
+
+```html
+<h1>Hello, ${user.name.title()}!</h1>
+<p>You have ${len(items)} item(s).</p>
+<p>${'Welcome back' if user else 'Please sign in'}</p>
+```
+
+Everything is HTML-escaped on the way in. A model value of `<b>bold</b>` renders as `&lt;b&gt;bold&lt;/b&gt;`, which is what you want for anything a user typed. When a value is already safe HTML, say a rendered Markdown document, prefix the expression with `structure:` to insert it verbatim:
+
+```html
+<div tal:content="structure: article_html">article goes here</div>
+```
+
+A name that is not in the model raises a `NameError` at render time, naming the missing variable. If a name is genuinely optional, give it a fallback with the `|` operator:
+
+```html
+<p>${subtitle | 'No subtitle'}</p>
+<p>${tracking_id | nothing}</p>
+```
+
+`nothing` is Chameleon's spelling of `None`; it renders as an empty string.
+
+## Loops: `tal:repeat`
+
+`tal:repeat="item items"` repeats the element it sits on once per item:
+
+```html
+<ul>
+    <li tal:repeat="item items">${item.name}</li>
+</ul>
+```
+
+Inside the loop a `repeat` object tracks where you are. `repeat.item.index` counts from zero, `repeat.item.number` from one, and `repeat.item.odd` and `repeat.item.even` are the booleans you reach for when striping rows:
+
+```html
+<tr tal:repeat="row rows" tal:attributes="class 'odd' if repeat.row.odd else 'even'">
+    <td>${repeat.row.number}</td>
+    <td>${row.title}</td>
+</tr>
+```
+
+An empty sequence renders nothing, not even the element, so an empty `<ul>` stays empty rather than holding a stray `<li>`.
+
+## Conditions: `tal:condition`
+
+The element, and everything inside it, is omitted when the expression is falsy:
+
+```html
+<div tal:condition="user">Signed in as ${user.name}</div>
+<div tal:condition="not user">Please sign in.</div>
+```
+
+There is no `else`; write the negated condition on a second element, as above. For several branches off one value, `tal:switch` on a parent and `tal:case` on the children:
+
+```html
+<div tal:switch="order.status">
+    <span tal:case="'paid'">Paid</span>
+    <span tal:case="'shipped'">On its way</span>
+    <span tal:case="default">Pending</span>
+</div>
+```
+
+## Content and replacement: `tal:content` and `tal:replace`
+
+`tal:content` replaces the element's contents and keeps the tag. `tal:replace` replaces the element itself:
+
+```html
+<span tal:content="message">placeholder shown when the file is opened directly</span>
+<span tal:replace="formatted_date">2024-01-01</span>
+```
+
+The placeholder text is the designer-friendly trick: open the `.pt` file in a browser and you see sample content; render it and the sample is replaced. Both escape their value unless you prefix it with `structure:`.
+
+## Attributes: `tal:attributes`
+
+Set one or more attributes from expressions, separated by semicolons:
+
+```html
+<a tal:attributes="href item.url; class item.css_class; title item.tooltip">${item.name}</a>
+```
+
+An expression that evaluates to `None` drops the attribute entirely, which is how you make `title` optional in the snippet above. Attribute values are escaped, like everything else.
+
+Inside attribute values you can also just interpolate, which is often shorter:
+
+```html
+<img src="/static/thumbs/${video.id}.jpg" alt="${video.title}">
+```
+
+## Variables and quiet elements: `tal:define` and `tal:omit-tag`
+
+`tal:define` binds a name for the element and its children:
+
+```html
+<div tal:define="total sum(line.price for line in order.lines)">
+    <p>Total: ${total}</p>
+</div>
+```
+
+`tal:omit-tag=""` renders an element's contents without the element, useful when you need somewhere to hang a `tal:repeat` or `tal:define` but want no wrapper in the output:
+
+```html
+<tal:block tal:repeat="section sections">  <!-- the tal: element is omitted too -->
+    <h2>${section.title}</h2>
+    <p>${section.body}</p>
+</tal:block>
+```
+
+The `<tal:block>` element is the idiomatic form: any element in the `tal:` namespace is omitted from the output automatically.
+
+## Comments
+
+An HTML comment stays in the output. Add a `!` and Chameleon strips it, so you can leave notes for the next developer that never reach the browser:
+
+```html
+<!-- this comment is sent to the browser -->
+<!--! this one is not -->
+```
+
+## Layouts: METAL macros and slots
+
+METAL is how Chameleon does template inheritance. A layout defines a macro with slots; a page uses the macro and fills the slots. The layout:
+
+```html
+<!-- templates/shared/layout.pt -->
+<!DOCTYPE html>
+<html metal:define-macro="layout" lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>${title}</title>
+    <link rel="stylesheet" href="/static/site.css">
+</head>
+<body>
+<nav>...</nav>
+<main metal:define-slot="content">Default content</main>
+<footer metal:define-slot="footer">&copy; Your site</footer>
+</body>
+</html>
+```
+
+And a page that uses it:
+
+```html
+<!-- templates/home/index.pt -->
+<div metal:use-macro="load: ../shared/layout.pt">
+    <div metal:fill-slot="content">
+        <h1>${title}</h1>
+        <ul>
+            <li tal:repeat="video videos">${video.title}</li>
+        </ul>
+    </div>
+</div>
+```
+
+The page fills `content` and leaves `footer` alone, so the footer's default appears. The outer `<div>` with `metal:use-macro` is replaced by the macro's output, so it never shows up in the page. One rule to internalize: the `load:` path is relative to the file that contains it, so from `templates/home/index.pt` the layout is `../shared/layout.pt`. That is the opposite convention from the `@template` decorator, whose paths are relative to the templates folder.
+
+The model is shared. `title` in the layout comes from the same dict the view returned, so a page that uses the layout must return every name the layout needs.
+
+## Alpine.js, Vue, and friends
+
+Chameleon is strict about attributes by default: anything that looks like a namespaced attribute outside its own `tal:`, `metal:`, and `i18n:` namespaces is rejected, and the rejection is a `KeyError` complaining about an undefined namespace prefix. That collides head-on with attribute-based JavaScript frameworks, whose whole idiom is shorthand like `@click`, `:class`, and `x-data`. Pass `restricted_namespace=False` to `global_init()` and Chameleon lets them through unchanged:
+
+```python
+chameleon_flask.global_init(template_folder, auto_reload=dev_mode, restricted_namespace=False)
+```
+
+```html
+<div x-data="{ open: false }">
+    <button @click="open = !open">Toggle</button>
+    <div :class="{ hidden: !open }">Content</div>
+</div>
+```
+
+Chameleon still owns the `${...}` syntax inside those attributes, so an Alpine expression that needs a literal `${` has to be written another way. In practice this almost never comes up.
+
+## File extensions
+
+`.pt` is the Chameleon convention and signals "this is a page template" in a folder listing. `.html` works just as well and keeps editors in HTML mode. The library treats them identically when you pass an explicit path; the bare decorator form checks for `.html` first and falls back to `.pt`, as [Decorating views](decorating-views.qmd) explains.

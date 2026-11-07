@@ -19,9 +19,9 @@ This is the decorator the library is built around. The view underneath it return
 
 It works on sync and async views alike, bare (`@template`) or with arguments (`@template('home/index.pt')`). When used bare, the template file is derived from the view as `{module}/{function_name}.html`, falling back to `.pt` when no `.html` file exists in the template folder.
 
-Two things are decided once, when the view is decorated, not per request. The first is the template file name: when relying on the bare form, call [global_init()](global_init.md#chameleon_flask.global_init) before defining your views, otherwise the `.html`-or-`.pt` check assumes a folder named `templates` relative to the working directory. The second is whether the view is async. A sync decorator stacked between `@template` and an `async def` is handled as long as it uses `functools.wraps`; without it the view's coroutine cannot be awaited and a clear error is raised, so place `@template` closest to the `async def` in that case.
+Two things are decided once, when the view is decorated, not per request. The first is the template file name: when relying on the bare form, call [global_init()](global_init.md#chameleon_flask.global_init) before defining your views, otherwise the `.html`-or-`.pt` check assumes a folder named `templates` relative to the working directory. The second is whether the view is async. On Flask with Python 3.12 or newer, your own decorators may sit above or below `@template` in any order. On Quart, and on older Pythons, keep `@template` directly under the route decorator and put sync decorators beneath it using `functools.wraps` (which `@template` looks through), or make them async; otherwise the framework cannot see the coroutine function and a clear error is raised.
 
-Put the route decorator outermost and `@template` directly above the function. The route must register the wrapper that produces a `Response`, not the raw view.
+Put the route decorator outermost and `@template` directly below it. The route must register the wrapper that produces a `Response`, not the raw view.
 
 
 ## Parameters
