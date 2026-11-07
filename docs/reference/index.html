@@ -42,7 +42,7 @@ ul.task-list li input[type="checkbox"] {
 <link href="../site_libs/quarto-html/quarto-syntax-highlighting-15634bcf2e68342d4ad2dfa704d543f6.css" rel="stylesheet" id="quarto-text-highlighting-styles">
 <script src="../site_libs/bootstrap/bootstrap.min.js"></script>
 <link href="../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
-<link href="../site_libs/bootstrap/bootstrap-b44a80f981ffe4e8ffda970bb00820f2.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<link href="../site_libs/bootstrap/bootstrap-ad5e7127987c8b4ffd7127f7681b6323.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
 <script id="quarto-search-options" type="application/json">{
   "location": "navbar",
   "copy-button": false,
@@ -84,7 +84,7 @@ ul.task-list li input[type="checkbox"] {
 
   <link rel="alternate" type="text/markdown" href="index.md">
   <link rel="canonical" href="https://mkennedy.codes/docs/chameleon-flask/reference/">
-  <meta name="description" content="The complete public API: engine setup, the @template decorator, direct rendering, and exceptions.">
+  <meta name="description" content="Everything the package exports, in the order you meet it: set the engine up once, decorate your views, render directly when the decorator cannot reach,...">
   <script type="application/ld+json">
 {
   "@context": "https://schema.org",
@@ -102,15 +102,15 @@ ul.task-list li input[type="checkbox"] {
 </script>
   <meta property="og:type" content="website">
   <meta property="og:title" content="API Reference – chameleon-flask | chameleon-flask">
-  <meta property="og:description" content="The complete public API: engine setup, the @template decorator, direct rendering, and exceptions.">
+  <meta property="og:description" content="Everything the package exports, in the order you meet it: set the engine up once, decorate your views, render directly when the decorator cannot reach,...">
   <meta property="og:url" content="https://mkennedy.codes/docs/chameleon-flask/reference/">
   <meta property="og:site_name" content="chameleon-flask">
   <meta name="twitter:card" content="summary">
   <meta name="twitter:title" content="API Reference – chameleon-flask | chameleon-flask">
-  <meta name="twitter:description" content="The complete public API: engine setup, the @template decorator, direct rendering, and exceptions.">
+  <meta name="twitter:description" content="Everything the package exports, in the order you meet it: set the engine up once, decorate your views, render directly when the decorator cannot reach,...">
 </head>
 
-<body class="gd-ref-sidebar nav-sidebar floating nav-fixed doc-reference quarto-light">
+<body class="gd-ref-sidebar nav-sidebar floating nav-fixed doc-reference doc-reference-index quarto-light">
 
 <div id="quarto-search-results"></div>
   <header id="quarto-header" class="headroom fixed-top">
@@ -180,13 +180,13 @@ ul.task-list li input[type="checkbox"] {
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="../reference/global_init.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="doc-object-name doc-function doc-label doc-label-function">global_init()</span></span></a>
+ <span class="menu-text">global_init</span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="../reference/engine.clear.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="doc-object-name doc-function doc-label doc-label-function">engine.clear()</span></span></a>
+ <span class="menu-text">engine.clear</span></a>
   </div>
 </li>
       </ul>
@@ -200,13 +200,13 @@ ul.task-list li input[type="checkbox"] {
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="../reference/template.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="doc-object-name doc-function doc-label doc-label-function">template()</span></span></a>
+ <span class="menu-text">template</span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="../reference/not_found.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="doc-object-name doc-function doc-label doc-label-function">not_found()</span></span></a>
+ <span class="menu-text">not_found</span></a>
   </div>
 </li>
       </ul>
@@ -220,13 +220,13 @@ ul.task-list li input[type="checkbox"] {
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="../reference/response.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="doc-object-name doc-function doc-label doc-label-function">response()</span></span></a>
+ <span class="menu-text">response</span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="../reference/engine.render.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="doc-object-name doc-function doc-label doc-label-function">engine.render()</span></span></a>
+ <span class="menu-text">engine.render</span></a>
   </div>
 </li>
       </ul>
@@ -240,13 +240,13 @@ ul.task-list li input[type="checkbox"] {
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="../reference/FlaskChameleonException.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="doc-object-name doc-class doc-label doc-label-exception">FlaskChameleonException</span></span></a>
+ <span class="menu-text">FlaskChameleonException</span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="../reference/FlaskChameleonNotFoundException.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="doc-object-name doc-class doc-label doc-label-class">FlaskChameleonNotFoundException</span></span></a>
+ <span class="menu-text">FlaskChameleonNotFoundException</span></a>
   </div>
 </li>
       </ul>
@@ -291,12 +291,12 @@ ul.task-list li input[type="checkbox"] {
 
 
 <div class="doc-description">
-<p>The complete public API: engine setup, the <span class="citation" data-cites="template">@template</span> decorator, direct rendering, and exceptions.</p>
+<p>Everything the package exports, in the order you meet it: set the engine up once, decorate your views, render directly when the decorator cannot reach, and the two exceptions that tie it together.</p>
 </div>
 <section id="configuration" class="level2 doc-group">
 <h2 class="doc-group">Configuration</h2>
 <div class="doc-description">
-<p>Set up the Chameleon template engine once at app startup.</p>
+<p>Point the engine at your templates folder once at app startup, and reset it when a test suite needs a clean slate.</p>
 </div>
 <dl>
 <dt><a href="../reference/global_init.html#chameleon_flask.global_init" class="doc-function doc-label doc-label-function">global_init()</a></dt>
@@ -312,7 +312,7 @@ ul.task-list li input[type="checkbox"] {
 <section id="decorating-views" class="level2 doc-group">
 <h2 class="doc-group">Decorating views</h2>
 <div class="doc-description">
-<p>Render templates from Flask/Quart view functions (sync or async) and return friendly 404s.</p>
+<p>The decorator that turns a view returning a dict into a rendered response, sync or async, and the one call that swaps the page for a friendly 404.</p>
 </div>
 <dl>
 <dt><a href="../reference/template.html#chameleon_flask.template" class="doc-function doc-label doc-label-function">template()</a></dt>
@@ -328,7 +328,7 @@ ul.task-list li input[type="checkbox"] {
 <section id="direct-rendering" class="level2 doc-group">
 <h2 class="doc-group">Direct rendering</h2>
 <div class="doc-description">
-<p>Render a template to a Response or raw HTML without the decorator.</p>
+<p>For error handlers, conditional branches, and anywhere else the decorator cannot reach: a template straight to a Response, or straight to an HTML string.</p>
 </div>
 <dl>
 <dt><a href="../reference/response.html#chameleon_flask.response" class="doc-function doc-label doc-label-function">response()</a></dt>
@@ -344,7 +344,7 @@ ul.task-list li input[type="checkbox"] {
 <section id="exceptions" class="level2 doc-group">
 <h2 class="doc-group">Exceptions</h2>
 <div class="doc-description">
-<p>Errors raised by the engine. Importable from <code>chameleon_flask</code> directly or from <code>chameleon_flask.exceptions</code>.</p>
+<p>The base error for everything the engine raises on purpose, and the not-found signal that <code>not_found()</code> raises and <code>@template</code> catches. Importable from <code>chameleon_flask</code> directly or from <code>chameleon_flask.exceptions</code>.</p>
 </div>
 <dl>
 <dt><a href="../reference/FlaskChameleonException.html#chameleon_flask.FlaskChameleonException" class="doc-class doc-label doc-label-exception">FlaskChameleonException</a></dt>

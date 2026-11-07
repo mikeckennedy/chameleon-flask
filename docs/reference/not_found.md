@@ -11,7 +11,9 @@ not_found(four04template_file="errors/404.pt")
 ```
 
 
-Call this inside a view decorated with `@template`, e.g. when a database lookup comes up empty. The decorator catches the raised exception and renders the given 404 template with an empty model, `text/html` content type, and status code 404 (the view's own `content_type` and `status_code` do not apply to the 404 path).
+Somewhere in most views there is a lookup that can come up empty: an item id that was deleted last week, a slug that never existed. Call this at that point, inside a view decorated with `@template`, and stop worrying about the rest of the function. It raises [FlaskChameleonNotFoundException](FlaskChameleonNotFoundException.md#chameleon_flask.FlaskChameleonNotFoundException), the decorator catches it, and the visitor gets your 404 template in the site's own look instead of the framework's bare error text.
+
+The 404 page is rendered with an empty model, `text/html` content type, and status code 404; the view's own `content_type` and `status_code` do not apply to this path.
 
 
 ## Parameters

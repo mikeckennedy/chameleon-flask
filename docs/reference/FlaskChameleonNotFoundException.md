@@ -13,7 +13,7 @@ FlaskChameleonNotFoundException(
 ```
 
 
-The `@template` decorator catches this exception and renders its `template_file` with an empty model and status code 404.
+You will rarely raise or catch this yourself. [not_found()](not_found.md#chameleon_flask.not_found) raises it from deep inside a view, the `@template` decorator catches it on the way out and renders its `template_file` with an empty model and status code 404. It only escapes if the view is not decorated, which is the one situation where you might want to catch it.
 
 
 ## Parameters

@@ -16,7 +16,11 @@ global_init(
 ```
 
 
-Call this once at app startup, before any decorated view is defined or runs. With `cache_init=True` (the default), later calls are silently ignored once the engine is initialized; pass `cache_init=False` (or call [chameleon_flask.engine.clear()](engine.clear.md#chameleon_flask.engine.clear)) to re-initialize with different settings.
+Point the library at your templates folder once, at app startup, and every decorated view in the process knows where to look from then on. Under the hood this creates a single Chameleon `PageTemplateLoader`, which compiles each template to Python bytecode the first time it renders and caches the result.
+
+The call is one-shot by design. With `cache_init=True` (the default), later calls are silently ignored once the engine is initialized, so a stray second [global_init()](global_init.md#chameleon_flask.global_init) deep in some module cannot swap your template folder out from under you. To re-initialize with different settings, pass `cache_init=False` or call [chameleon_flask.engine.clear()](engine.clear.md#chameleon_flask.engine.clear) first.
+
+Call this before any decorated view is defined: the bare `@template` form resolves its template file name at decoration time and relies on the folder recorded here.
 
 
 ## Parameters
@@ -26,13 +30,13 @@ Call this once at app startup, before any decorated view is defined or runs. Wit
 Path to the template directory.
 
 `auto_reload: bool = ``False`  
-Whether to auto-reload templates on change (handy in dev mode).
+Re-read a template whenever its file changes. Exactly what you want while editing templates and an unneeded file check per render in production, so tie it to your dev-mode flag.
 
 `cache_init: bool = ``True`  
 If True, do nothing when the engine is already initialized.
 
 `restricted_namespace: bool = ``True`  
-If True, only TAL/METAL/i18n namespaces are allowed. If False, allows attribute-based JS frameworks like Alpine.js to use shorthand syntax (<span class="citation" cites="click">@click</span>, :class, etc.)
+If True, only TAL/METAL/i18n namespaced attributes are allowed in templates. Set it to False to let attribute-based JavaScript frameworks such as Alpine.js and Vue use their shorthand (`@click`, `:class`, `x-data`).
 
 
 ## Raises

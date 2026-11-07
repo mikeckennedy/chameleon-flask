@@ -77,7 +77,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <link href="../site_libs/quarto-html/quarto-syntax-highlighting-15634bcf2e68342d4ad2dfa704d543f6.css" rel="stylesheet" id="quarto-text-highlighting-styles">
 <script src="../site_libs/bootstrap/bootstrap.min.js"></script>
 <link href="../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
-<link href="../site_libs/bootstrap/bootstrap-b44a80f981ffe4e8ffda970bb00820f2.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<link href="../site_libs/bootstrap/bootstrap-ad5e7127987c8b4ffd7127f7681b6323.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
 <script id="quarto-search-options" type="application/json">{
   "location": "navbar",
   "copy-button": false,
@@ -227,13 +227,13 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="../reference/global_init.html" class="sidebar-item-text sidebar-link active">
- <span class="menu-text"><span class="doc-object-name doc-function doc-label doc-label-function">global_init()</span></span></a>
+ <span class="menu-text">global_init</span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="../reference/engine.clear.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="doc-object-name doc-function doc-label doc-label-function">engine.clear()</span></span></a>
+ <span class="menu-text">engine.clear</span></a>
   </div>
 </li>
       </ul>
@@ -247,13 +247,13 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="../reference/template.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="doc-object-name doc-function doc-label doc-label-function">template()</span></span></a>
+ <span class="menu-text">template</span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="../reference/not_found.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="doc-object-name doc-function doc-label doc-label-function">not_found()</span></span></a>
+ <span class="menu-text">not_found</span></a>
   </div>
 </li>
       </ul>
@@ -267,13 +267,13 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="../reference/response.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="doc-object-name doc-function doc-label doc-label-function">response()</span></span></a>
+ <span class="menu-text">response</span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="../reference/engine.render.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="doc-object-name doc-function doc-label doc-label-function">engine.render()</span></span></a>
+ <span class="menu-text">engine.render</span></a>
   </div>
 </li>
       </ul>
@@ -287,13 +287,13 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="../reference/FlaskChameleonException.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="doc-object-name doc-class doc-label doc-label-exception">FlaskChameleonException</span></span></a>
+ <span class="menu-text">FlaskChameleonException</span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="../reference/FlaskChameleonNotFoundException.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="doc-object-name doc-class doc-label doc-label-class">FlaskChameleonNotFoundException</span></span></a>
+ <span class="menu-text">FlaskChameleonNotFoundException</span></a>
   </div>
 </li>
       </ul>
@@ -341,7 +341,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </div>
 <div class="doc-usage-source">
 <p>Usage</p>
-<p><a href="https://github.com/mikeckennedy/chameleon-flask/blob/main/chameleon_flask/engine.py#L33-L83" target="_blank" rel="noopener">Source</a></p>
+<p><a href="https://github.com/mikeckennedy/chameleon-flask/blob/main/chameleon_flask/engine.py#L37-L98" target="_blank" rel="noopener">Source</a></p>
 </div>
 <div class="doc-signature doc-Kind.FUNCTION">
 <div class="sourceCode" id="cb1"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="sig-name">global_init</span>(</span>
@@ -352,7 +352,9 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div>
 </div>
 <div class="doc-text">
-<p>Call this once at app startup, before any decorated view is defined or runs. With <code>cache_init=True</code> (the default), later calls are silently ignored once the engine is initialized; pass <code>cache_init=False</code> (or call <a href="engine.clear.html#chameleon_flask.engine.clear" class="gdls-link gdls-code">chameleon_flask.engine.clear()</a>) to re-initialize with different settings.</p>
+<p>Point the library at your templates folder once, at app startup, and every decorated view in the process knows where to look from then on. Under the hood this creates a single Chameleon <code>PageTemplateLoader</code>, which compiles each template to Python bytecode the first time it renders and caches the result.</p>
+<p>The call is one-shot by design. With <code>cache_init=True</code> (the default), later calls are silently ignored once the engine is initialized, so a stray second <a href="global_init.html#chameleon_flask.global_init" class="gdls-link gdls-code">global_init()</a> deep in some module cannot swap your template folder out from under you. To re-initialize with different settings, pass <code>cache_init=False</code> or call <a href="engine.clear.html#chameleon_flask.engine.clear" class="gdls-link gdls-code">chameleon_flask.engine.clear()</a> first.</p>
+<p>Call this before any decorated view is defined: the bare <code>@template</code> form resolves its template file name at decoration time and relies on the folder recorded here.</p>
 </div>
 <section id="parameters" class="level2 doc-parameters">
 <h2 class="doc-parameters">Parameters</h2>
@@ -364,7 +366,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </dd>
 <dt><code><span class="doc-parameter-name">auto_reload</span><span class="doc-parameter-annotation-sep">:</span> <span class="doc-parameter-annotation">bool</span> <span class="doc-parameter-default-sep op">=</span> <span class="doc-parameter-default"><span class="va">False</span></span></code></dt>
 <dd>
-<p>Whether to auto-reload templates on change (handy in dev mode).</p>
+<p>Re-read a template whenever its file changes. Exactly what you want while editing templates and an unneeded file check per render in production, so tie it to your dev-mode flag.</p>
 </dd>
 <dt><code><span class="doc-parameter-name">cache_init</span><span class="doc-parameter-annotation-sep">:</span> <span class="doc-parameter-annotation">bool</span> <span class="doc-parameter-default-sep op">=</span> <span class="doc-parameter-default"><span class="va">True</span></span></code></dt>
 <dd>
@@ -372,7 +374,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </dd>
 <dt><code><span class="doc-parameter-name">restricted_namespace</span><span class="doc-parameter-annotation-sep">:</span> <span class="doc-parameter-annotation">bool</span> <span class="doc-parameter-default-sep op">=</span> <span class="doc-parameter-default"><span class="va">True</span></span></code></dt>
 <dd>
-If True, only TAL/METAL/i18n namespaces are allowed. If False, allows attribute-based JS frameworks like Alpine.js to use shorthand syntax (<span class="citation" data-cites="click">@click</span>, :class, etc.)
+If True, only TAL/METAL/i18n namespaced attributes are allowed in templates. Set it to False to let attribute-based JavaScript frameworks such as Alpine.js and Vue use their shorthand (<code>@click</code>, <code>:class</code>, <code>x-data</code>).
 </dd>
 </dl>
 </div>

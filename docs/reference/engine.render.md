@@ -14,6 +14,9 @@ engine.render(
 ```
 
 
+This is the bottom rung of the ladder: a model goes in, HTML comes out, and nothing is wrapped in a response. Reach for it when you want the markup itself, for example to build an email body or to tuck rendered HTML into a JSON payload. Decorated views and [response()](response.md#chameleon_flask.response) both end up here.
+
+
 ## Parameters
 
 
@@ -35,4 +38,4 @@ The rendered HTML as a string.
 
 
 `FlaskChameleonException`  
-If [global_init()](global_init.md#chameleon_flask.global_init) has not been called yet.
+If [global_init()](global_init.md#chameleon_flask.global_init) has not been called yet, or if `template_data` contains the key `encoding`, which Chameleon reserves as a render argument and cannot expose to the template.

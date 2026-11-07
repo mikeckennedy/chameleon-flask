@@ -13,7 +13,7 @@ response(
 ```
 
 
-Useful when you want a rendered response without the `@template` decorator, for example inside error handlers or conditional branches.
+The `@template` decorator is the comfortable path, but it cannot reach everywhere. Error handlers are registered with Flask directly, a view may need to render a different template down one branch, and a helper may build a response for a view to return. All of them have the same need: a template, a model, and a finished response. This function meets that need in one call.
 
 
 ## Parameters

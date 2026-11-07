@@ -77,25 +77,25 @@ authors:
 
 reference:
   title: "API Reference"
-  desc: "The complete public API: engine setup, the @template decorator, direct rendering, and exceptions."
+  desc: "Everything the package exports, in the order you meet it: set the engine up once, decorate your views, render directly when the decorator cannot reach, and the two exceptions that tie it together."
   sections:
     - title: Configuration
-      desc: "Set up the Chameleon template engine once at app startup."
+      desc: "Point the engine at your templates folder once at app startup, and reset it when a test suite needs a clean slate."
       contents:
         - global_init
         - engine.clear
     - title: Decorating views
-      desc: "Render templates from Flask/Quart view functions (sync or async) and return friendly 404s."
+      desc: "The decorator that turns a view returning a dict into a rendered response, sync or async, and the one call that swaps the page for a friendly 404."
       contents:
         - template
         - not_found
     - title: Direct rendering
-      desc: "Render a template to a Response or raw HTML without the decorator."
+      desc: "For error handlers, conditional branches, and anywhere else the decorator cannot reach: a template straight to a Response, or straight to an HTML string."
       contents:
         - response
         - engine.render
     - title: Exceptions
-      desc: "Errors raised by the engine. Importable from `chameleon_flask` directly or from `chameleon_flask.exceptions`."
+      desc: "The base error for everything the engine raises on purpose, and the not-found signal that `not_found()` raises and `@template` catches. Importable from `chameleon_flask` directly or from `chameleon_flask.exceptions`."
       contents:
         - FlaskChameleonException
         - FlaskChameleonNotFoundException
